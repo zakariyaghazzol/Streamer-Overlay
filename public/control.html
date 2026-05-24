@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Space Overlay Control</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body class="control-page">
+    <main class="control-shell">
+      <section class="control-header">
+        <div>
+          <p class="eyebrow">Space Stream Overlay</p>
+          <h1>Mission Control</h1>
+        </div>
+        <div class="connection-badge" id="connectionBadge">Connecting</div>
+      </section>
+
+      <section class="preview-band">
+        <div class="preview-frame">
+          <div class="preview-topbar">
+            <span>Overlay Preview</span>
+            <span>16:9</span>
+          </div>
+          <iframe title="Overlay preview" src="/overlay?demo=1"></iframe>
+        </div>
+        <div class="url-panel">
+          <label for="overlayUrl">Browser source URL</label>
+          <input id="overlayUrl" readonly>
+          <div class="button-row">
+            <button class="primary-button" id="copyOverlayButton" type="button">Copy URL</button>
+            <button class="secondary-button" id="openOverlayButton" type="button">Open</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="control-grid">
+        <form class="control-panel" id="detailsForm">
+          <div class="panel-heading">
+            <h2>Stream Details</h2>
+            <button class="primary-button" type="submit">Save</button>
+          </div>
+          <label>
+            Streamer name
+            <input name="streamerName" id="streamerNameInput" maxlength="28">
+          </label>
+          <label>
+            Game title
+            <input name="gameTitle" id="gameTitleInput" maxlength="32">
+          </label>
+          <label>
+            Status
+            <input name="statusText" id="statusTextInput" maxlength="16">
+          </label>
+        </form>
+
+        <section class="control-panel">
+          <div class="panel-heading">
+            <h2>Stats</h2>
+            <button class="ghost-button" data-action="stats:reset" type="button">Reset</button>
+          </div>
+          <div class="counter-row">
+            <div>
+              <span>Kills</span>
+              <strong id="killsReadout">0</strong>
+            </div>
+            <div class="stepper">
+              <button data-action="kills:subtract" type="button" aria-label="Subtract kill">-</button>
+              <button data-action="kills:add" type="button" aria-label="Add kill">+</button>
+            </div>
+          </div>
+          <div class="counter-row">
+            <div>
+              <span>Wins</span>
+              <strong id="winsReadout">0</strong>
+            </div>
+            <div class="stepper">
+              <button data-action="wins:subtract" type="button" aria-label="Subtract win">-</button>
+              <button data-action="wins:add" type="button" aria-label="Add win">+</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="control-panel">
+          <div class="panel-heading">
+            <h2>Timer</h2>
+            <button class="ghost-button" data-action="timer:reset" type="button">Reset</button>
+          </div>
+          <div class="timer-readout" id="timerReadout">00:00</div>
+          <div class="segmented-control" role="group" aria-label="Timer mode">
+            <button id="countUpButton" data-mode="countup" type="button">Count Up</button>
+            <button id="countDownButton" data-mode="countdown" type="button">Countdown</button>
+          </div>
+          <div class="button-row">
+            <button class="primary-button" data-action="timer:start" type="button">Start</button>
+            <button class="secondary-button" data-action="timer:pause" type="button">Pause</button>
+          </div>
+          <label>
+            Countdown minutes
+            <input id="durationInput" type="number" min="1" max="1440" step="1">
+          </label>
+        </section>
+
+        <form class="control-panel" id="goalForm">
+          <div class="panel-heading">
+            <h2>Subscriber Goal</h2>
+            <button class="primary-button" type="submit">Save</button>
+          </div>
+          <div class="counter-row">
+            <div>
+              <span>Current</span>
+              <strong id="subsReadout">42</strong>
+            </div>
+            <div class="stepper">
+              <button data-action="subs:subtract" type="button" aria-label="Subtract subscriber">-</button>
+              <button data-action="subs:add" type="button" aria-label="Add subscriber">+</button>
+            </div>
+          </div>
+          <label>
+            Goal label
+            <input name="subLabel" id="subLabelInput" maxlength="28">
+          </label>
+          <label>
+            Current subscribers
+            <input name="subsCurrent" id="subsCurrentInput" type="number" min="0" max="999999">
+          </label>
+          <label>
+            Target subscribers
+            <input name="subsTarget" id="subsTargetInput" type="number" min="1" max="999999">
+          </label>
+        </form>
+      </section>
+    </main>
+
+    <script src="/control.js"></script>
+  </body>
+</html>

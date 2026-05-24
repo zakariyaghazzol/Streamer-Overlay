@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Space Stream Overlay</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body class="overlay-page">
+    <canvas id="starfield" class="starfield" aria-hidden="true"></canvas>
+
+    <main class="overlay-stage" aria-live="polite">
+      <div class="screen-accent screen-accent-top" aria-hidden="true"></div>
+      <div class="screen-accent screen-accent-bottom" aria-hidden="true"></div>
+
+      <section class="top-hud hud-panel">
+        <div class="status-pill" id="statusText">LIVE</div>
+        <div class="identity-block">
+          <div class="streamer-name" id="streamerName">STAR RUNNER</div>
+          <div class="game-title" id="gameTitle">RANKED GRIND</div>
+        </div>
+      </section>
+
+      <section class="stat-stack stat-stack-left">
+        <article class="hud-panel stat-panel kill-panel">
+          <span class="stat-label">KILLS</span>
+          <strong class="stat-value" id="killsValue">0</strong>
+        </article>
+        <article class="hud-panel stat-panel win-panel">
+          <span class="stat-label">WINS</span>
+          <strong class="stat-value" id="winsValue">0</strong>
+        </article>
+      </section>
+
+      <section class="hud-panel timer-panel">
+        <span class="timer-label" id="timerMode">COUNT UP</span>
+        <strong class="timer-value" id="timerValue">00:00</strong>
+      </section>
+
+      <section class="hud-panel goal-panel">
+        <div class="goal-topline">
+          <span id="subLabel">SUB GOAL</span>
+          <strong><span id="subsCurrent">42</span>/<span id="subsTarget">100</span></strong>
+        </div>
+        <div class="goal-track" aria-hidden="true">
+          <div class="goal-fill" id="subProgress"></div>
+        </div>
+      </section>
+    </main>
+
+    <script src="/overlay.js"></script>
+  </body>
+</html>
