@@ -60,7 +60,7 @@ button {
   user-select: none;
 }
 
-/* CRT monitor scanlines scan lines */
+/* CRT monitor scanlines */
 .scanlines {
   position: fixed;
   inset: 0;
@@ -138,7 +138,7 @@ button {
 
 /* ========================================================
    NO MAN'S SKY HUD GLASS PANEL (DRAGGABLE INDEPENDENT BLOCKS)
-   ======================================================= */
+   ======================================================== */
 
 .hud-panel {
   position: absolute !important; /* Force absolute coordinates for drag engine */
@@ -267,8 +267,28 @@ button {
   100% { stroke-dashoffset: 35; }
 }
 
+/* Glowing orbiting SVG moons! */
+.nms-circle-dot {
+  fill: var(--nms-cyan);
+  filter: drop-shadow(0 0 6px var(--nms-cyan));
+  transform-origin: 40px 40px; /* SVG Center Coordinates */
+  animation: nms-moon-orbit 6s linear infinite;
+  z-index: 4;
+}
+
+.win-panel .nms-circle-dot {
+  fill: var(--nms-gold);
+  filter: drop-shadow(0 0 6px var(--nms-gold));
+  animation: nms-moon-orbit 10s linear infinite reverse; /* slower / opposite orbit */
+}
+
+@keyframes nms-moon-orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* ========================================================
-   1. FLIGHT NAVIGATION COMPUTER (TOP HUD)
+   1. FLIGHT NAVIGATION COMPUTER & DYNAMIC HOLOGRAM PLANET
    ======================================================== */
 
 .top-hud {
@@ -282,46 +302,73 @@ button {
   clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
 }
 
-.radar-container {
+/* Hologram 3D Orbiting Planet HUD block */
+.holo-planet-container {
   position: relative;
-  width: 40px;
-  height: 40px;
-  border: 1px solid rgba(0, 255, 170, 0.35);
+  width: 44px;
+  height: 44px;
+  background: transparent;
   border-radius: 50%;
-  background: rgba(0, 255, 170, 0.03);
-  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
 }
 
-.radar-grid {
+.holo-planet-sphere {
   position: absolute;
-  inset: 0;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  background: 
-    radial-gradient(circle, transparent 35%, rgba(0, 255, 170, 0.15) 35%, transparent 37%, transparent 65%, rgba(0, 255, 170, 0.15) 65%, transparent 67%),
-    linear-gradient(90deg, transparent 49%, rgba(0, 255, 170, 0.12) 49%, rgba(0, 255, 170, 0.12) 51%, transparent 51%),
-    linear-gradient(0deg, transparent 49%, rgba(0, 255, 170, 0.12) 49%, rgba(0, 255, 170, 0.12) 51%, transparent 51%);
+  background: radial-gradient(circle at 30% 30%, var(--nms-cyan) 0%, rgba(0, 130, 220, 0.6) 45%, #02050b 85%);
+  box-shadow: inset -2px -2px 6px rgba(0,0,0,0.85), 0 0 10px rgba(0, 240, 255, 0.35);
+  animation: holo-spin-sphere 12s linear infinite;
+  z-index: 2;
 }
 
-.radar-sweep {
+.holo-planet-glow {
   position: absolute;
-  width: 100%;
-  height: 100%;
-  background: conic-gradient(from 0deg, rgba(0, 255, 170, 0.45) 0deg, transparent 140deg);
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  animation: radar-spin 4s linear infinite;
-  transform-origin: center;
+  background: rgba(0, 240, 255, 0.08);
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.55), inset 0 0 8px rgba(0, 240, 255, 0.25);
+  z-index: 1;
+  animation: holo-glow-breath 2.2s ease-in-out infinite alternate;
 }
 
-.radar-blip {
+.holo-planet-ring {
   position: absolute;
-  width: 5px;
-  height: 5px;
-  background: var(--nms-orange);
+  width: 38px;
+  height: 9px;
+  border: 1.5px solid rgba(0, 240, 255, 0.65);
   border-radius: 50%;
-  top: 30%;
-  left: 68%;
-  box-shadow: 0 0 8px var(--nms-orange);
-  animation: radar-fade 2s ease-out infinite;
+  transform: rotate(-18deg);
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.holo-planet-scan {
+  position: absolute;
+  width: 24px;
+  height: 1px;
+  background: var(--nms-emerald);
+  opacity: 0.7;
+  box-shadow: 0 0 5px var(--nms-emerald);
+  z-index: 4;
+  animation: holo-laser-scan 2s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes holo-laser-scan {
+  0% { top: 12px; }
+  100% { top: 32px; }
+}
+
+@keyframes holo-glow-breath {
+  0% { transform: scale(0.92); opacity: 0.55; }
+  100% { transform: scale(1.08); opacity: 1; }
 }
 
 .status-block {
@@ -737,7 +784,7 @@ button {
   text-shadow: 0 0 8px rgba(0, 255, 170, 0.4);
 }
 
-/* Warp core track with active chevrons warning background */
+/* Warp core track with chevrons warning background */
 .goal-track {
   position: relative;
   height: 10px;
@@ -1100,7 +1147,7 @@ button:active {
   text-shadow: 0 0 6px rgba(0, 240, 255, 0.3) !important;
 }
 
-/* Specific glowing style for Copy URL button to fix gray contrast overlap */
+/* Specific style for Copy URL button to fix gray contrast overlap */
 #copyOverlayButton {
   border: 1px solid var(--nms-cyan) !important;
   color: #010408 !important;
@@ -1118,7 +1165,7 @@ button:active {
 
 .counter-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr 112px);
+  grid-template-columns: minmax(0, 1fr) 112px;
   gap: 14px;
   align-items: center;
   min-height: 72px;
@@ -1211,9 +1258,15 @@ button:active {
   100% { transform: rotate(360deg); }
 }
 
+@keyframes holo-spin-sphere {
+  0% { background-position: 0px center; }
+  100% { background-position: 200px center; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .top-hud, .stat-panel, .goal-panel, .timer-panel { animation: none !important; }
   .radar-sweep { animation: none !important; }
+  .holo-planet-sphere, .holo-planet-glow, .holo-planet-ring, .holo-planet-scan { animation: none !important; }
 }
 
 @media (max-width: 1040px) {

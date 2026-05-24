@@ -22,6 +22,7 @@ let warpFactor = 1.0;
 const shockwaves = [];
 const nebulae = [];
 const asteroids = [];
+const planetsList = [];
 
 if (new URLSearchParams(window.location.search).has("demo")) {
   document.body.classList.add("demo-mode");
@@ -84,7 +85,7 @@ function updateState(nextState) {
     updatePositions(nextState.layout);
   }
 
-  // Detect state increments to trigger amazing space-warp and shockwave reactions!
+  // Detect state increments to trigger amazing space-warp, comets, and planet zooms!
   if (previousState) {
     if (nextState.kills > previousState.kills) {
       const panel = document.getElementById("killPanel");
@@ -95,7 +96,7 @@ function updateState(nextState) {
       }
       const center = getPanelCenter("killPanel");
       triggerShockwave(center.x, center.y, "#00ffaa");
-      warpFactor = 8.0;
+      warpFactor = 7.5;
     }
 
     if (nextState.wins > previousState.wins) {
@@ -161,8 +162,8 @@ function triggerShockwave(x, y, color) {
     x,
     y,
     radius: 0,
-    maxRadius: window.innerWidth * 0.25,
-    speed: 7,
+    maxRadius: window.innerWidth * 0.28,
+    speed: 8,
     color,
     alpha: 1.0
   });
@@ -220,7 +221,7 @@ function pad(value) {
 }
 
 /* ========================================================
-   NO MAN'S SKY DYNAMIC ASTEROID & PLANETARY CANVAS ENGINE
+   NO MAN'S SKY DYNAMIC 3D PLANETS CANVAS ENGINE (WARP)
    ======================================================== */
 
 function startStarfield() {
@@ -232,9 +233,40 @@ function startStarfield() {
   // Initialize atmospheric colored nebulae
   nebulae.length = 0;
   nebulae.push(
-    { x: window.innerWidth * 0.18, y: window.innerHeight * 0.22, radius: 450, color: "rgba(0, 255, 170, 0.08)", targetX: window.innerWidth * 0.18, targetY: window.innerHeight * 0.22 }, // Toxic Emerald
-    { x: window.innerWidth * 0.82, y: window.innerHeight * 0.72, radius: 500, color: "rgba(255, 0, 127, 0.06)", targetX: window.innerWidth * 0.82, targetY: window.innerHeight * 0.72 }, // Stellar Pink
+    { x: window.innerWidth * 0.18, y: window.innerHeight * 0.22, radius: 480, color: "rgba(0, 255, 170, 0.08)", targetX: window.innerWidth * 0.18, targetY: window.innerHeight * 0.22 }, // Toxic Emerald
+    { x: window.innerWidth * 0.82, y: window.innerHeight * 0.72, radius: 520, color: "rgba(255, 0, 127, 0.06)", targetX: window.innerWidth * 0.82, targetY: window.innerHeight * 0.72 }, // Stellar Pink
     { x: window.innerWidth * 0.5, y: window.innerHeight * 0.45, radius: 600, color: "rgba(0, 112, 255, 0.05)", targetX: window.innerWidth * 0.5, targetY: window.innerHeight * 0.45 }  // Deep Cobalt
+  );
+
+  // Initialize detailed 3D background planets
+  planetsList.length = 0;
+  planetsList.push(
+    {
+      id: "saturn",
+      pctX: 0.72, pctY: 0.42, // target percentages
+      x: 0, y: 0,
+      radius: 120,
+      baseRadius: 120,
+      driftX: 0, driftY: 0,
+      colorStart: "#00f0ff", colorEnd: "#020713",
+      rings: true,
+      volcanoes: false,
+      opacity: 1.0,
+      fadingIn: false
+    },
+    {
+      id: "toxic",
+      pctX: 0.18, pctY: 0.28,
+      x: 0, y: 0,
+      radius: 76,
+      baseRadius: 76,
+      driftX: 0, driftY: 0,
+      colorStart: "#00ffaa", colorEnd: "#02120b",
+      rings: false,
+      volcanoes: true,
+      opacity: 1.0,
+      fadingIn: false
+    }
   );
 
   const resize = () => {
@@ -274,6 +306,12 @@ function startStarfield() {
         points: generateAsteroidPoints(size),
         color: ["#101a2d", "#1c2538", "#243147"][Math.floor(Math.random() * 3)]
       });
+    }
+
+    // Positions initial reset
+    for (const planet of planetsList) {
+      planet.x = window.innerWidth * planet.pctX;
+      planet.y = window.innerHeight * planet.pctY;
     }
   };
 
@@ -331,7 +369,134 @@ function startStarfield() {
       }
     }
 
-    // 4. Draw drifting, rotating asteroid rocks
+    // 4. Draw detailed Gaseous Planets with 3D ring wraps & hyperdrive warp zoom!
+    for (const planet of planetsList) {
+      // Slow orbital drift
+      planet.driftX = Math.sin(Date.now() * 0.0003 + planet.baseRadius) * 6;
+      planet.driftY = Math.cos(Date.now() * 0.0003 + planet.baseRadius) * 6;
+
+      const targetX = window.innerWidth * planet.pctX + planet.driftX;
+      const targetY = window.innerHeight * planet.pctY + planet.driftY;
+
+      // Drifting translation towards target
+      planet.x += (targetX - planet.x) * 0.008;
+      planet.y += (targetY - planet.y) * 0.008;
+
+      // Hyperdrive camera travel zoom calculations
+      if (warpFactor > 1.2) {
+        // Accelerate planet radius scaling
+        const growth = planet.baseRadius * (warpFactor - 1.0) * 0.65;
+        planet.radius += (growth - planet.radius + planet.baseRadius) * 0.08;
+        
+        // Push coordinate distance exponentially off-screen
+        const dx = planet.x - window.innerWidth * 0.5;
+        const dy = planet.y - window.innerHeight * 0.5;
+        planet.x += dx * 0.05 * (warpFactor - 1.0);
+        planet.y += dy * 0.05 * (warpFactor - 1.0);
+
+        // Fade out as planet flies past camera
+        if (planet.radius > planet.baseRadius * 1.5) {
+          planet.opacity = Math.max(0, 1 - (planet.radius - planet.baseRadius * 1.5) / (window.innerWidth * 0.25));
+        }
+      } else {
+        // Smoothly settle back to base values
+        planet.radius += (planet.baseRadius - planet.radius) * 0.05;
+        if (planet.fadingIn) {
+          planet.opacity += (1.0 - planet.opacity) * 0.03;
+          if (planet.opacity > 0.95) {
+            planet.opacity = 1.0;
+            planet.fadingIn = false;
+          }
+        }
+      }
+
+      // If planet has zoomed fully off-screen/faded, reset its sector!
+      if (planet.opacity <= 0 && !planet.fadingIn) {
+        planet.radius = 0;
+        planet.opacity = 0;
+        planet.fadingIn = true;
+        // Shift its position slightly to simulate entering a new stellar quadrant!
+        planet.pctX = Math.random() * 0.5 + (planet.id === "saturn" ? 0.45 : 0.1);
+        planet.pctY = Math.random() * 0.4 + 0.15;
+        planet.x = window.innerWidth * 0.5;
+        planet.y = window.innerHeight * 0.5;
+      }
+
+      // Render the planet if visible
+      if (planet.opacity > 0) {
+        context.save();
+        context.globalAlpha = planet.opacity;
+
+        if (planet.rings) {
+          // A. Draw back half of Saturn rings (ellipse drawn PI to 2*PI)
+          context.beginPath();
+          context.shadowBlur = 12;
+          context.shadowColor = "rgba(0, 240, 255, 0.45)";
+          context.strokeStyle = "rgba(180, 255, 245, 0.4)";
+          context.lineWidth = planet.radius * 0.09;
+          context.ellipse(planet.x, planet.y, planet.radius * 1.7, planet.radius * 0.28, -Math.PI / 10, Math.PI, Math.PI * 2);
+          context.stroke();
+        }
+
+        // B. Draw gaseous planetary sphere (radial gradient with offset highlight shadow)
+        const highlightX = planet.x - planet.radius * 0.2;
+        const highlightY = planet.y - planet.radius * 0.2;
+        const radGrad = context.createRadialGradient(
+          highlightX, highlightY, planet.radius * 0.1,
+          planet.x, planet.y, planet.radius
+        );
+        radGrad.addColorStop(0, planet.colorStart);
+        radGrad.addColorStop(0.3, hexToRgba(planet.colorStart, 0.6));
+        radGrad.addColorStop(0.85, planet.colorEnd);
+        radGrad.addColorStop(1, "#010204");
+
+        context.shadowBlur = planet.rings ? 25 : 15;
+        context.shadowColor = planet.colorStart;
+        context.fillStyle = radGrad;
+        context.beginPath();
+        context.arc(planet.x, planet.y, planet.radius, 0, Math.PI * 2);
+        context.fill();
+
+        // If volcanic planet: draw active boiling magma spots
+        if (planet.volcanoes) {
+          context.shadowBlur = 8;
+          context.shadowColor = "#ff7200";
+          const volcanoOffsets = [
+            { x: -0.3, y: -0.2, r: 0.1 },
+            { x: 0.1, y: 0.3, r: 0.08 },
+            { x: 0.4, y: -0.1, r: 0.07 }
+          ];
+          for (const offset of volcanoOffsets) {
+            const vx = planet.x + planet.radius * offset.x;
+            const vy = planet.y + planet.radius * offset.y;
+            const vr = planet.radius * offset.r;
+            const vgrad = context.createRadialGradient(vx, vy, 0, vx, vy, vr);
+            vgrad.addColorStop(0, "#ffd200");
+            vgrad.addColorStop(0.5, "#ff7200");
+            vgrad.addColorStop(1, "rgba(0,0,0,0)");
+            context.fillStyle = vgrad;
+            context.beginPath();
+            context.arc(vx, vy, vr, 0, Math.PI * 2);
+            context.fill();
+          }
+        }
+
+        if (planet.rings) {
+          // C. Draw front half of Saturn rings overlapping sphere (ellipse drawn 0 to PI)
+          context.beginPath();
+          context.shadowBlur = 12;
+          context.shadowColor = "rgba(0, 240, 255, 0.45)";
+          context.strokeStyle = "rgba(180, 255, 245, 0.4)";
+          context.lineWidth = planet.radius * 0.09;
+          context.ellipse(planet.x, planet.y, planet.radius * 1.7, planet.radius * 0.28, -Math.PI / 10, 0, Math.PI);
+          context.stroke();
+        }
+
+        context.restore();
+      }
+    }
+
+    // 5. Draw drifting, rotating asteroid rocks
     for (const ast of asteroids) {
       ast.y += ast.speed * warpFactor;
       ast.x += ast.speed * warpFactor * 0.04;
@@ -363,7 +528,7 @@ function startStarfield() {
       context.restore();
     }
 
-    // 5. Draw glowing plasma ring shockwaves on increments
+    // 6. Draw glowing plasma ring shockwaves on increments
     for (let index = shockwaves.length - 1; index >= 0; index -= 1) {
       const wave = shockwaves[index];
       wave.radius += wave.speed * (1 + warpFactor * 0.12);
