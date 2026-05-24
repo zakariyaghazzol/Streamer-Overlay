@@ -2,3 +2,8 @@ node_modules/
 .vercel/
 state.json
 npm-debug.log*
+.env
+.env.production
+.env.local
+.env.development
+.env.staging
