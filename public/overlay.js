@@ -97,6 +97,7 @@ function updateState(nextState) {
       const center = getPanelCenter("killPanel");
       triggerShockwave(center.x, center.y, "#00ffaa");
       warpFactor = 7.5;
+      playSoundAlert("kill");
     }
 
     if (nextState.wins > previousState.wins) {
@@ -109,6 +110,7 @@ function updateState(nextState) {
       const center = getPanelCenter("winPanel");
       triggerShockwave(center.x, center.y, "#ffd200");
       warpFactor = 18.0;
+      playSoundAlert("win");
     }
 
     if (nextState.subsCurrent > previousState.subsCurrent) {
@@ -121,6 +123,7 @@ function updateState(nextState) {
       const center = getPanelCenter("goalPanel");
       triggerShockwave(center.x, center.y, "#ff007f");
       warpFactor = 10.0;
+      playSoundAlert("sub");
     }
   }
 
@@ -689,4 +692,118 @@ async function sendDragAction(payload) {
   } catch (err) {
     console.error("Failed to persist layout coordinate updates:", err);
   }
+}
+
+/* ========================================================
+   WEB AUDIO API SYNTHESIZER & SOUND ALERT DISPATCHER
+   ======================================================== */
+
+const SpaceAudio = {
+  ctx: null,
+
+  init() {
+    if (this.ctx) return;
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+  },
+
+  playLaserSub() {
+    this.init();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(800, now);
+    osc.frequency.exponentialRampToValueAtTime(180, now + 0.35);
+
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.005, now + 0.35);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.35);
+  },
+
+  playKillBeep() {
+    this.init();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(1000, now);
+    osc.frequency.setValueAtTime(1350, now + 0.07);
+
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.exponentialRampToValueAtTime(0.005, now + 0.22);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.22);
+  },
+
+  playWinFanfare() {
+    this.init();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Synthesized retro gaming victory brass/chord arpeggio progression (Fortnite win vibes!)
+    const notes = [
+      { f: 261.63, start: 0, end: 0.15 },    // C4
+      { f: 329.63, start: 0.1, end: 0.25 },  // E4
+      { f: 392.00, start: 0.2, end: 0.35 },  // G4
+      { f: 523.25, start: 0.3, end: 0.45 },  // C5
+      { f: 392.00, start: 0.42, end: 0.55 }, // G4
+      { f: 523.25, start: 0.52, end: 1.1 }   // C5 (Hold chord!)
+    ];
+
+    notes.forEach(n => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(n.f, now + n.start);
+
+      gain.gain.setValueAtTime(0.15, now + n.start);
+      gain.gain.exponentialRampToValueAtTime(0.005, now + n.end);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now + n.start);
+      osc.stop(now + n.end);
+    });
+  }
+};
+
+function playSoundAlert(eventType) {
+  // Mapping custom local files placed in the public/ folder if they exist
+  const customFiles = {
+    kill: "/kill.mp3",
+    win: "/victory.mp3",
+    sub: "/sub.mp3"
+  };
+
+  const audio = new Audio(customFiles[eventType]);
+  audio.volume = 0.35;
+
+  audio.play()
+    .catch(() => {
+      // Fallback: If custom local audio file doesn't exist, synthesize it in Web Audio API!
+      if (eventType === "kill") {
+        SpaceAudio.playKillBeep();
+      } else if (eventType === "win") {
+        SpaceAudio.playWinFanfare();
+      } else if (eventType === "sub") {
+        SpaceAudio.playLaserSub();
+      }
+    });
 }
