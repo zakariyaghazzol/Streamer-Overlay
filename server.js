@@ -30,6 +30,7 @@ const defaultState = {
 let state = clone(defaultState);
 const eventClients = new Set();
 let saveTimer = null;
+let stateReady = false;
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -43,10 +44,24 @@ const mimeTypes = {
   ".webp": "image/webp"
 };
 
-bootstrap();
+if (require.main === module) {
+  bootstrap();
+} else {
+  module.exports = vercelHandler;
+}
+
+async function vercelHandler(req, res) {
+  try {
+    await ensureStateReady();
+    await routeRequest(req, res);
+  } catch (error) {
+    console.error(error);
+    sendJson(res, 500, { error: "Something went wrong." });
+  }
+}
 
 async function bootstrap() {
-  state = await loadState();
+  await ensureStateReady();
 
   const server = http.createServer(async (req, res) => {
     try {
@@ -68,6 +83,15 @@ async function bootstrap() {
   setInterval(() => {
     broadcast("heartbeat", { serverTime: Date.now() });
   }, 15000).unref();
+}
+
+async function ensureStateReady() {
+  if (stateReady) {
+    return;
+  }
+
+  state = await loadState();
+  stateReady = true;
 }
 
 async function routeRequest(req, res) {
@@ -256,6 +280,10 @@ async function persistAndBroadcast() {
 }
 
 function scheduleSave() {
+  if (process.env.VERCEL) {
+    return;
+  }
+
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
     try {

@@ -56,3 +56,5 @@ After editing code, reload the Streamlabs Browser Source or click its refresh bu
 ## Notes
 
 Streamlabs Desktop supports browser sources/custom widgets. TikTok LIVE Studio lists a Link source for adding a webpage preview to a LIVE scene, but TikTok access and behavior can vary by account and app version. If TikTok refuses a local URL, use OBS/Streamlabs and send that output to TikTok, or host this folder on a private HTTPS page.
+
+On hosted platforms like Vercel, the control panel URL is public unless you add authentication. The local version is best for live streaming because `127.0.0.1` is only reachable from your own machine.
