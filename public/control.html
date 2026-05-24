@@ -23,7 +23,10 @@
             <span>PORT_8787 // SECURE</span>
           </div>
         </div>
-        <div class="connection-badge" id="connectionBadge">Connecting</div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <button class="ghost-button" id="resetLayoutButton" data-action="layout:reset" type="button" style="border-color: rgba(0, 255, 170, 0.4) !important; color: var(--nms-emerald) !important; font-size: 0.72rem; padding: 0 16px; min-height: 36px;">Reset Layout</button>
+          <div class="connection-badge" id="connectionBadge">Connecting</div>
+        </div>
       </section>
 
       <section class="preview-band">

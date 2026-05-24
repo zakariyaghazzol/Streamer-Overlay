@@ -21,6 +21,7 @@ const overlayEls = {
 let warpFactor = 1.0;
 const shockwaves = [];
 const nebulae = [];
+const asteroids = [];
 
 if (new URLSearchParams(window.location.search).has("demo")) {
   document.body.classList.add("demo-mode");
@@ -30,6 +31,11 @@ connectEvents();
 loadInitialState();
 startTimerLoop();
 startStarfield();
+
+// Enable Drag and Drop immediately if loaded inside an iframe (Mission Control preview)
+if (window.self !== window.top) {
+  initDragAndDrop();
+}
 
 async function loadInitialState() {
   try {
@@ -73,6 +79,11 @@ function updateState(nextState) {
   const percent = Math.min(100, Math.round((nextState.subsCurrent / Math.max(1, nextState.subsTarget)) * 100));
   overlayEls.subProgress.style.width = `${percent}%`;
 
+  // Dynamically load coordinates layout positions from state
+  if (nextState.layout) {
+    updatePositions(nextState.layout);
+  }
+
   // Detect state increments to trigger amazing space-warp and shockwave reactions!
   if (previousState) {
     if (nextState.kills > previousState.kills) {
@@ -83,8 +94,8 @@ function updateState(nextState) {
         panel.classList.add("state-flash");
       }
       const center = getPanelCenter("killPanel");
-      triggerShockwave(center.x, center.y, "#00f0ff");
-      warpFactor = 7.5;
+      triggerShockwave(center.x, center.y, "#00ffaa");
+      warpFactor = 8.0;
     }
 
     if (nextState.wins > previousState.wins) {
@@ -95,7 +106,7 @@ function updateState(nextState) {
         panel.classList.add("state-flash");
       }
       const center = getPanelCenter("winPanel");
-      triggerShockwave(center.x, center.y, "#ffb700");
+      triggerShockwave(center.x, center.y, "#ffd200");
       warpFactor = 18.0;
     }
 
@@ -115,6 +126,24 @@ function updateState(nextState) {
   renderTimer();
 }
 
+function updatePositions(layout) {
+  const mappings = {
+    topHud: "topHudPanel",
+    kill: "killPanel",
+    win: "winPanel",
+    timer: "timerPanel",
+    goal: "goalPanel"
+  };
+  
+  for (const [key, elementId] of Object.entries(mappings)) {
+    const el = document.getElementById(elementId);
+    if (el && layout[key]) {
+      el.style.left = `${layout[key].x}%`;
+      el.style.top = `${layout[key].y}%`;
+    }
+  }
+}
+
 function getPanelCenter(elementId) {
   const el = document.getElementById(elementId);
   if (!el) {
@@ -132,7 +161,7 @@ function triggerShockwave(x, y, color) {
     x,
     y,
     radius: 0,
-    maxRadius: window.innerWidth * 0.22,
+    maxRadius: window.innerWidth * 0.25,
     speed: 7,
     color,
     alpha: 1.0
@@ -190,17 +219,22 @@ function pad(value) {
   return String(value).padStart(2, "0");
 }
 
+/* ========================================================
+   NO MAN'S SKY DYNAMIC ASTEROID & PLANETARY CANVAS ENGINE
+   ======================================================== */
+
 function startStarfield() {
   const canvas = document.getElementById("starfield");
   const context = canvas.getContext("2d");
   const stars = [];
-  const colors = ["#00f0ff", "#ffb700", "#ffffff", "#ff4fa3", "#7f00ff"];
+  const colors = ["#00ffaa", "#ffd200", "#ffffff", "#ff007f", "#00f0ff"];
 
-  // Initialize nebula gas nodes
+  // Initialize atmospheric colored nebulae
   nebulae.length = 0;
   nebulae.push(
-    { x: window.innerWidth * 0.25, y: window.innerHeight * 0.35, radius: 300, color: "rgba(127, 0, 255, 0.08)", targetX: window.innerWidth * 0.25, targetY: window.innerHeight * 0.35 },
-    { x: window.innerWidth * 0.75, y: window.innerHeight * 0.65, radius: 350, color: "rgba(0, 240, 255, 0.06)", targetX: window.innerWidth * 0.75, targetY: window.innerHeight * 0.65 }
+    { x: window.innerWidth * 0.18, y: window.innerHeight * 0.22, radius: 450, color: "rgba(0, 255, 170, 0.08)", targetX: window.innerWidth * 0.18, targetY: window.innerHeight * 0.22 }, // Toxic Emerald
+    { x: window.innerWidth * 0.82, y: window.innerHeight * 0.72, radius: 500, color: "rgba(255, 0, 127, 0.06)", targetX: window.innerWidth * 0.82, targetY: window.innerHeight * 0.72 }, // Stellar Pink
+    { x: window.innerWidth * 0.5, y: window.innerHeight * 0.45, radius: 600, color: "rgba(0, 112, 255, 0.05)", targetX: window.innerWidth * 0.5, targetY: window.innerHeight * 0.45 }  // Deep Cobalt
   );
 
   const resize = () => {
@@ -210,23 +244,35 @@ function startStarfield() {
     canvas.style.width = `${window.innerWidth}px`;
     canvas.style.height = `${window.innerHeight}px`;
     context.setTransform(scale, 0, 0, scale, 0, 0);
-    stars.length = 0;
-
-    nebulae[0].targetX = window.innerWidth * 0.25;
-    nebulae[0].targetY = window.innerHeight * 0.35;
-    nebulae[1].targetX = window.innerWidth * 0.75;
-    nebulae[1].targetY = window.innerHeight * 0.65;
-
+    
     // Distribute slow & fast stars
-    const count = Math.min(180, Math.floor((window.innerWidth * window.innerHeight) / 12000));
+    stars.length = 0;
+    const count = Math.min(180, Math.floor((window.innerWidth * window.innerHeight) / 11000));
     for (let index = 0; index < count; index += 1) {
       stars.push({
         x: Math.random() * window.innerWidth,
         y: Math.random() * window.innerHeight,
-        radius: Math.random() * 1.6 + 0.3,
-        speed: Math.random() * 0.25 + 0.04,
-        alpha: Math.random() * 0.6 + 0.15,
+        radius: Math.random() * 1.5 + 0.3,
+        speed: Math.random() * 0.2 + 0.03,
+        alpha: Math.random() * 0.7 + 0.15,
         color: colors[Math.floor(Math.random() * colors.length)]
+      });
+    }
+
+    // Distribute floating asteroid space rocks
+    asteroids.length = 0;
+    const astCount = Math.min(14, Math.floor(window.innerWidth / 130));
+    for (let index = 0; index < astCount; index += 1) {
+      const size = Math.random() * 24 + 6;
+      asteroids.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        size,
+        speed: Math.random() * 0.15 + 0.03,
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * 0.006,
+        points: generateAsteroidPoints(size),
+        color: ["#101a2d", "#1c2538", "#243147"][Math.floor(Math.random() * 3)]
       });
     }
   };
@@ -237,8 +283,8 @@ function startStarfield() {
     // 1. Draw glowing space nebula dust gas
     context.globalCompositeOperation = "screen";
     for (const neb of nebulae) {
-      neb.x += (neb.targetX - neb.x) * 0.004 + (Math.sin(Date.now() * 0.0004) * 0.08);
-      neb.y += (neb.targetY - neb.y) * 0.004 + (Math.cos(Date.now() * 0.0004) * 0.08);
+      neb.x += (neb.targetX - neb.x) * 0.003 + (Math.sin(Date.now() * 0.0003) * 0.08);
+      neb.y += (neb.targetY - neb.y) * 0.003 + (Math.cos(Date.now() * 0.0003) * 0.08);
       
       const grad = context.createRadialGradient(neb.x, neb.y, 0, neb.x, neb.y, neb.radius);
       grad.addColorStop(0, neb.color);
@@ -250,13 +296,16 @@ function startStarfield() {
       context.arc(neb.x, neb.y, neb.radius, 0, Math.PI * 2);
       context.fill();
     }
+
+    // 2. Draw glowing slanted planetary ring sheets (No Man's Sky Sheet Beam)
+    drawPlanetaryRings(context);
     context.globalCompositeOperation = "source-over";
 
-    // 2. Animate and draw stars (with responsive warp-stretching)
+    // 3. Draw drifting stars (warp acceleration lines on stat changes)
     for (const star of stars) {
       const currentSpeed = star.speed * warpFactor;
       star.y += currentSpeed;
-      star.x += currentSpeed * 0.12; // drift diagonal
+      star.x += currentSpeed * 0.08; // slight diagonal drift
 
       if (star.y > window.innerHeight + 25) {
         star.y = -25;
@@ -268,26 +317,56 @@ function startStarfield() {
       context.shadowColor = star.color;
 
       if (warpFactor > 1.8) {
-        // Warp Drive stretch lines
         context.strokeStyle = hexToRgba(star.color, star.alpha * 0.85);
         context.lineWidth = star.radius * 0.9;
         context.shadowBlur = 12;
         context.beginPath();
         context.moveTo(star.x, star.y);
-        context.lineTo(star.x + currentSpeed * 0.24, star.y + currentSpeed * 1.8);
+        context.lineTo(star.x + currentSpeed * 0.16, star.y + currentSpeed * 1.8);
         context.stroke();
       } else {
-        // High-fidelity standard glowing stars
-        context.shadowBlur = 6;
+        context.shadowBlur = 5;
         context.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
         context.fill();
       }
     }
 
-    // 3. Render glowing shockwave plasma rings on state upgrades
+    // 4. Draw drifting, rotating asteroid rocks
+    for (const ast of asteroids) {
+      ast.y += ast.speed * warpFactor;
+      ast.x += ast.speed * warpFactor * 0.04;
+      ast.rotation += ast.rotationSpeed;
+
+      if (ast.y > window.innerHeight + 40) {
+        ast.y = -40;
+        ast.x = Math.random() * window.innerWidth;
+      }
+
+      context.save();
+      context.translate(ast.x, ast.y);
+      context.rotate(ast.rotation);
+      
+      context.beginPath();
+      context.fillStyle = ast.color;
+      context.strokeStyle = "rgba(0, 255, 170, 0.2)";
+      context.lineWidth = 1;
+      context.shadowBlur = 4;
+      context.shadowColor = "rgba(0, 255, 170, 0.12)";
+      
+      context.moveTo(ast.points[0].x, ast.points[0].y);
+      for (let index = 1; index < ast.points.length; index += 1) {
+        context.lineTo(ast.points[index].x, ast.points[index].y);
+      }
+      context.closePath();
+      context.fill();
+      context.stroke();
+      context.restore();
+    }
+
+    // 5. Draw glowing plasma ring shockwaves on increments
     for (let index = shockwaves.length - 1; index >= 0; index -= 1) {
       const wave = shockwaves[index];
-      wave.radius += wave.speed * (1 + warpFactor * 0.15);
+      wave.radius += wave.speed * (1 + warpFactor * 0.12);
       wave.alpha = Math.max(0, 1 - wave.radius / wave.maxRadius);
 
       if (wave.alpha <= 0) {
@@ -297,14 +376,14 @@ function startStarfield() {
 
       context.beginPath();
       context.strokeStyle = hexToRgba(wave.color, wave.alpha);
-      context.lineWidth = 2.5;
+      context.lineWidth = 3;
       context.shadowColor = wave.color;
       context.shadowBlur = 20;
       context.arc(wave.x, wave.y, wave.radius, 0, Math.PI * 2);
       context.stroke();
     }
 
-    // Decay the warp speed factor back to standard drift
+    // Smooth warp factor deceleration
     warpFactor = warpFactor * 0.95 + 1.0 * 0.05;
 
     requestAnimationFrame(draw);
@@ -313,6 +392,46 @@ function startStarfield() {
   window.addEventListener("resize", resize);
   resize();
   draw();
+}
+
+function generateAsteroidPoints(size) {
+  const points = [];
+  const sides = Math.floor(Math.random() * 4) + 6; // 6 to 9 sided polygons
+  for (let index = 0; index < sides; index += 1) {
+    const angle = (index / sides) * Math.PI * 2;
+    const offset = (Math.random() * 0.35 + 0.7) * size;
+    points.push({
+      x: Math.cos(angle) * offset,
+      y: Math.sin(angle) * offset
+    });
+  }
+  return points;
+}
+
+function drawPlanetaryRings(context) {
+  context.save();
+  context.shadowBlur = 15;
+  context.shadowColor = "rgba(0, 240, 255, 0.4)";
+  
+  const angle = -Math.PI / 5.5; // slant angle
+  context.translate(window.innerWidth * 0.5, window.innerHeight * 0.5);
+  context.rotate(angle);
+  
+  // Draw wide sheet of fine circular ring layers slanting upwards
+  const numRings = 16;
+  const startRad = 360;
+  const ringSpacing = 7;
+  
+  for (let index = 0; index < numRings; index += 1) {
+    context.beginPath();
+    const alpha = (0.16 * (1 - index / numRings)) * (0.8 + 0.2 * Math.sin(Date.now() * 0.0006 + index));
+    context.strokeStyle = `rgba(180, 255, 235, ${alpha})`;
+    context.lineWidth = 1.2;
+    context.ellipse(0, 0, startRad + index * ringSpacing, (startRad + index * ringSpacing) * 0.16, 0, 0, Math.PI * 2);
+    context.stroke();
+  }
+  
+  context.restore();
 }
 
 function hexToRgba(hex, alpha) {
@@ -324,3 +443,85 @@ function hexToRgba(hex, alpha) {
   return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
+/* ========================================================
+   INTERACTIVE DRAG AND DROP COORDINATES WRITER (IFRAME)
+   ======================================================== */
+
+function initDragAndDrop() {
+  const mappings = {
+    "topHudPanel": "topHud",
+    "killPanel": "kill",
+    "winPanel": "win",
+    "timerPanel": "timer",
+    "goalPanel": "goal"
+  };
+
+  document.addEventListener("DOMContentLoaded", () => {
+    bindDragEvents();
+  });
+  // Also run immediately in case DOM is already loaded
+  bindDragEvents();
+
+  function bindDragEvents() {
+    for (const [elementId, panelId] of Object.entries(mappings)) {
+      const el = document.getElementById(elementId);
+      if (!el || el.dataset.dragBound) continue;
+      
+      el.dataset.dragBound = "true";
+      el.addEventListener("mousedown", (e) => {
+        // Only trigger on left-click and inside iframe
+        if (e.button !== 0 || window.self === window.top) return;
+
+        e.preventDefault();
+        el.style.transition = "none"; // Disable CSS slide transition during drag
+
+        const rect = el.getBoundingClientRect();
+        const offsetX = e.clientX - rect.left;
+        const offsetY = e.clientY - rect.top;
+
+        const onMouseMove = (moveEvent) => {
+          let xPercent = ((moveEvent.clientX - offsetX) / window.innerWidth) * 100;
+          let yPercent = ((moveEvent.clientY - offsetY) / window.innerHeight) * 100;
+
+          // Clamp coordinates to keep panel comfortably on screen
+          xPercent = Math.max(0, Math.min(94, xPercent));
+          yPercent = Math.max(0, Math.min(94, yPercent));
+
+          el.style.left = `${xPercent}%`;
+          el.style.top = `${yPercent}%`;
+        };
+
+        const onMouseUp = () => {
+          document.removeEventListener("mousemove", onMouseMove);
+          document.removeEventListener("mouseup", onMouseUp);
+          el.style.transition = ""; // Restore transitions
+
+          const xPercent = (el.offsetLeft / window.innerWidth) * 100;
+          const yPercent = (el.offsetTop / window.innerHeight) * 100;
+
+          sendDragAction({
+            type: "layout:update",
+            panelId,
+            x: Math.round(xPercent),
+            y: Math.round(yPercent)
+          });
+        };
+
+        document.addEventListener("mousemove", onMouseMove);
+        document.addEventListener("mouseup", onMouseUp);
+      });
+    }
+  }
+}
+
+async function sendDragAction(payload) {
+  try {
+    await fetch("/api/action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+  } catch (err) {
+    console.error("Failed to persist layout coordinate updates:", err);
+  }
+}

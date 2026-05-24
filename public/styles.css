@@ -1,1230 +1,1099 @@
-/* ==========================================
-   SPACE STREAM OVERLAY - HIGH TECH HUD DESIGN
-   ========================================== */
+/* ========================================================
+   NO MAN'S SKY - INFINITE SPACE STREAM OVERLAY & HUD SYSTEM
+   ======================================================== */
 
-   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Oxanium:wght@300;400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Oxanium:wght@300;400;600;800&display=swap');
 
-   :root {
-     color-scheme: dark;
-   
-     /* High-Tech Neon Palette */
-     --neon-cyan: #00f0ff;
-     --neon-magenta: #ff007f;
-     --neon-pink: #ff4fa3;
-     --neon-purple: #7f00ff;
-     --neon-gold: #ffb700;
-     --neon-green: #39ff14;
-     --neon-red: #ff3333;
-     
-     /* Dark Space Obsidian UI colors */
-     --void-black: #020408;
-     --void-deep: #060b13;
-     --void-panel: rgba(5, 11, 22, 0.65);
-     --void-panel-solid: rgba(8, 14, 26, 0.95);
-     
-     /* Glassmorphism Accents */
-     --glass-border: rgba(0, 240, 255, 0.28);
-     --glass-border-soft: rgba(255, 255, 255, 0.08);
-     
-     /* Fonts */
-     --font-hud: 'Orbitron', 'Segoe UI', system-ui, sans-serif;
-     --font-mono: 'Oxanium', 'Share Tech Mono', monospace;
-     
-     /* Shadows & Glows */
-     --neon-glow: 0 0 15px rgba(0, 240, 255, 0.15), inset 0 0 15px rgba(0, 240, 255, 0.08);
-     --neon-glow-magenta: 0 0 20px rgba(255, 0, 127, 0.25);
-     --neon-glow-gold: 0 0 20px rgba(255, 183, 0, 0.25);
-     
-     --radius-panel: 6px;
-     font-family: var(--font-hud);
-     letter-spacing: 0.05em;
-   }
-   
-   * {
-     box-sizing: border-box;
-   }
-   
-   html,
-   body {
-     margin: 0;
-     min-height: 100%;
-     background: transparent;
-   }
-   
-   button,
-   input {
-     font: inherit;
-     letter-spacing: inherit;
-   }
-   
-   button {
-     user-select: none;
-   }
-   
-   /* Scanline laser filter overlay for high-tech monitors */
-   .scanlines {
-     position: fixed;
-     inset: 0;
-     pointer-events: none;
-     z-index: 9999;
-     background: linear-gradient(
-       rgba(18, 16, 16, 0) 50%, 
-       rgba(0, 0, 0, 0.12) 50%
-     );
-     background-size: 100% 4px;
-     opacity: 0.45;
-   }
-   
-   /* Overlay canvas and stage */
-   .overlay-page {
-     width: 100vw;
-     height: 100vh;
-     overflow: hidden;
-     color: #f0f6ff;
-     background: transparent;
-   }
-   
-   /* Demo mode: elegant nebula void background */
-   .overlay-page.demo-mode {
-     background: 
-       radial-gradient(circle at 10% 20%, rgba(127, 0, 255, 0.12) 0%, transparent 40%),
-       radial-gradient(circle at 90% 80%, rgba(0, 240, 255, 0.08) 0%, transparent 40%),
-       linear-gradient(180deg, rgba(2, 4, 8, 0.4), rgba(2, 4, 8, 0.85)),
-       #020409;
-   }
-   
-   .starfield {
-     position: fixed;
-     inset: 0;
-     width: 100%;
-     height: 100%;
-     pointer-events: none;
-     opacity: 0.2;
-     mix-blend-mode: screen;
-   }
-   
-   .demo-mode .starfield {
-     opacity: 0.85;
-   }
-   
-   .overlay-stage {
-     position: relative;
-     width: 100vw;
-     height: 100vh;
-     isolation: isolate;
-   }
-   
-   /* Premium screen accents (Top and Bottom glowing vector bars) */
-   .screen-accent {
-     position: absolute;
-     left: 4vw;
-     right: 4vw;
-     height: 2px;
-     background: linear-gradient(90deg, 
-       transparent, 
-       var(--neon-cyan) 20%, 
-       var(--neon-magenta) 50%, 
-       var(--neon-cyan) 80%, 
-       transparent
-     );
-     opacity: 0.8;
-     filter: drop-shadow(0 0 6px var(--neon-cyan));
-     pointer-events: none;
-   }
-   
-   .screen-accent-top {
-     top: 14px;
-   }
-   
-   .screen-accent-bottom {
-     bottom: 14px;
-   }
-   
-   /* ==========================================
-      HIGH TECH HUD GLASS PANEL DEFINITION
-      ========================================== */
-   
-   .hud-panel {
-     position: absolute;
-     overflow: hidden;
-     border: 1px solid var(--glass-border);
-     border-radius: var(--radius-panel);
-     color: #ffffff;
-     background: 
-       linear-gradient(135deg, rgba(0, 240, 255, 0.06), transparent 35%),
-       linear-gradient(315deg, rgba(255, 0, 127, 0.04), transparent 45%),
-       var(--void-panel);
-     box-shadow: var(--neon-glow), 0 10px 40px rgba(0, 0, 0, 0.6);
-     backdrop-filter: blur(16px) saturate(1.4);
-     transform-style: preserve-3d;
-     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-   }
-   
-   /* Cybernetic corner markers */
-   .hud-corner {
-     position: absolute;
-     width: 10px;
-     height: 10px;
-     border: 1px solid var(--neon-cyan);
-     pointer-events: none;
-     z-index: 10;
-     opacity: 0.85;
-   }
-   .hud-corner.top-left {
-     top: -1px;
-     left: -1px;
-     border-right: none;
-     border-bottom: none;
-   }
-   .hud-corner.top-right {
-     top: -1px;
-     right: -1px;
-     border-left: none;
-     border-bottom: none;
-   }
-   .hud-corner.bottom-left {
-     bottom: -1px;
-     left: -1px;
-     border-right: none;
-     border-top: none;
-   }
-   .hud-corner.bottom-right {
-     bottom: -1px;
-     right: -1px;
-     border-left: none;
-     border-top: none;
-   }
-   
-   /* Custom decorative grid in HUD backgrounds */
-   .hud-panel::before {
-     position: absolute;
-     inset: 0;
-     content: "";
-     background: 
-       repeating-linear-gradient(135deg, rgba(0, 240, 255, 0.03) 0 1px, transparent 1px 16px),
-       linear-gradient(90deg, rgba(255, 255, 255, 0.01) 0px, transparent 1px);
-     pointer-events: none;
-     mix-blend-mode: overlay;
-   }
-   
-   /* Elegant horizontal accent indicator bar */
-   .hud-panel::after {
-     position: absolute;
-     right: 14px;
-     bottom: 8px;
-     width: 44px;
-     height: 2px;
-     background: linear-gradient(90deg, transparent, var(--neon-cyan));
-     box-shadow: 0 0 10px var(--neon-cyan);
-     content: "";
-   }
-   
-   /* Anti-gravity breathing animation */
-   .top-hud {
-     animation: anti-gravity 6.5s ease-in-out infinite;
-   }
-   .stat-panel.kill-panel {
-     animation: anti-gravity 7s ease-in-out infinite;
-     animation-delay: -1.2s;
-   }
-   .stat-panel.win-panel {
-     animation: anti-gravity 7.5s ease-in-out infinite;
-     animation-delay: -3.4s;
-   }
-   .timer-panel {
-     animation: anti-gravity 8s ease-in-out infinite;
-     animation-delay: -2s;
-   }
-   .goal-panel {
-     animation: anti-gravity 7.2s ease-in-out infinite;
-     animation-delay: -4.5s;
-   }
-   
-   /* Panel state flash animation triggers (fired on updates) */
-   @keyframes panel-spark-cyan {
-     0% {
-       border-color: #ffffff;
-       box-shadow: 0 0 35px #ffffff, 0 0 20px var(--neon-cyan), inset 0 0 15px #ffffff;
-       transform: scale(1.025);
-     }
-     100% {
-       border-color: var(--glass-border);
-       box-shadow: var(--neon-glow);
-       transform: scale(1);
-     }
-   }
-   @keyframes panel-spark-gold {
-     0% {
-       border-color: #ffffff;
-       box-shadow: 0 0 35px #ffffff, 0 0 20px var(--neon-gold), inset 0 0 15px #ffffff;
-       transform: scale(1.025);
-     }
-     100% {
-       border-color: var(--neon-gold);
-       box-shadow: var(--neon-glow-gold);
-       transform: scale(1);
-     }
-   }
-   
-   .kill-panel.state-flash {
-     animation: panel-spark-cyan 0.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards !important;
-   }
-   .win-panel.state-flash {
-     animation: panel-spark-gold 0.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards !important;
-   }
-   .goal-panel.state-flash {
-     animation: panel-spark-cyan 0.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards !important;
-   }
-   
-   /* ==========================================
-      1. TOP HUD - LOGO & STREAMER BLOCK
-      ========================================== */
-   
-   .top-hud {
-     top: 28px;
-     left: 50%;
-     display: grid;
-     grid-template-columns: auto auto 1fr auto;
-     align-items: center;
-     gap: 16px;
-     width: min(560px, calc(100vw - 40px));
-     min-height: 72px;
-     padding: 12px 24px;
-     clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
-     transform: translateX(-50%);
-   }
-   
-   /* High-Tech Rotating Radar Dial */
-   .radar-container {
-     position: relative;
-     width: 44px;
-     height: 44px;
-     border: 1px solid rgba(0, 240, 255, 0.4);
-     border-radius: 50%;
-     background: rgba(0, 240, 255, 0.04);
-     overflow: hidden;
-     box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
-   }
-   
-   .radar-grid {
-     position: absolute;
-     inset: 0;
-     border-radius: 50%;
-     background: 
-       radial-gradient(circle, transparent 35%, rgba(0, 240, 255, 0.15) 35%, transparent 37%, transparent 65%, rgba(0, 240, 255, 0.15) 65%, transparent 67%),
-       linear-gradient(90deg, transparent 49%, rgba(0, 240, 255, 0.15) 49%, rgba(0, 240, 255, 0.15) 51%, transparent 51%),
-       linear-gradient(0deg, transparent 49%, rgba(0, 240, 255, 0.15) 49%, rgba(0, 240, 255, 0.15) 51%, transparent 51%);
-   }
-   
-   .radar-sweep {
-     position: absolute;
-     width: 100%;
-     height: 100%;
-     background: conic-gradient(from 0deg, rgba(0, 240, 255, 0.45) 0deg, transparent 150deg);
-     border-radius: 50%;
-     animation: radar-spin 4s linear infinite;
-     transform-origin: center;
-   }
-   
-   .radar-blip {
-     position: absolute;
-     width: 5px;
-     height: 5px;
-     background: var(--neon-green);
-     border-radius: 50%;
-     top: 28%;
-     left: 65%;
-     box-shadow: 0 0 8px var(--neon-green);
-     animation: radar-fade 2s ease-out infinite;
-   }
-   
-   @keyframes radar-spin {
-     from { transform: rotate(0deg); }
-     to { transform: rotate(360deg); }
-   }
-   @keyframes radar-fade {
-     0%, 100% { opacity: 0.2; }
-     50% { opacity: 1; }
-   }
-   
-   .status-block {
-     display: flex;
-     flex-direction: column;
-     gap: 3px;
-     align-items: center;
-   }
-   
-   .status-pill {
-     position: relative;
-     z-index: 1;
-     display: inline-flex;
-     align-items: center;
-     justify-content: center;
-     min-width: 58px;
-     padding: 4px 10px;
-     border: 1px solid var(--neon-green);
-     border-radius: 3px;
-     color: #030805;
-     background: linear-gradient(180deg, #b5ffbe, var(--neon-green));
-     box-shadow: 0 0 15px rgba(57, 255, 20, 0.45);
-     font-size: 0.72rem;
-     font-weight: 900;
-     line-height: 1;
-     text-transform: uppercase;
-     letter-spacing: 0.12em;
-   }
-   
-   .status-pill::before {
-     width: 6px;
-     height: 6px;
-     margin-right: 5px;
-     border-radius: 50%;
-     background: #030805;
-     box-shadow: 0 0 6px #030805;
-     content: "";
-     display: inline-block;
-     animation: blinker 1.4s linear infinite;
-   }
-   
-   @keyframes blinker {
-     50% { opacity: 0.1; }
-   }
-   
-   .telemetry-tag {
-     font-family: var(--font-mono);
-     font-size: 0.58rem;
-     font-weight: 600;
-     color: var(--neon-green);
-     letter-spacing: 0.08em;
-     opacity: 0.9;
-   }
-   
-   .identity-block {
-     position: relative;
-     z-index: 1;
-     min-width: 0;
-   }
-   
-   .streamer-name {
-     max-width: 100%;
-     overflow: hidden;
-     color: #ffffff;
-     font-size: 1.35rem;
-     font-weight: 900;
-     line-height: 1;
-     text-overflow: ellipsis;
-     text-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
-     white-space: nowrap;
-   }
-   
-   .game-title {
-     display: inline-flex;
-     align-items: center;
-     gap: 8px;
-     max-width: 100%;
-     margin-top: 4px;
-     overflow: hidden;
-     color: var(--neon-gold);
-     font-size: 0.7rem;
-     font-weight: 700;
-     line-height: 1.1;
-     text-overflow: ellipsis;
-     white-space: nowrap;
-   }
-   
-   .game-title::before {
-     display: inline-block;
-     width: 24px;
-     height: 1px;
-     background: linear-gradient(90deg, var(--neon-magenta), var(--neon-gold));
-     content: "";
-   }
-   
-   .hud-serial {
-     display: flex;
-     flex-direction: column;
-     align-items: flex-end;
-     font-family: var(--font-mono);
-     font-size: 0.55rem;
-     color: rgba(0, 240, 255, 0.75);
-     line-height: 1.3;
-     border-left: 1px solid rgba(0, 240, 255, 0.2);
-     padding-left: 12px;
-   }
-   
-   /* ==========================================
-      2. STAT STACK - COMBAT READOUTS
-      ========================================== */
-   
-   .stat-stack {
-     position: absolute;
-     top: 156px;
-     display: grid;
-     gap: 14px;
-   }
-   
-   .stat-stack-left {
-     left: 28px;
-   }
-   
-   .stat-panel {
-     position: relative;
-     display: grid;
-     grid-template-rows: auto auto auto;
-     width: 184px;
-     min-height: 84px;
-     padding: 10px 16px 8px;
-     clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
-   }
-   
-   .stat-panel::after {
-     display: none; /* remove basic accent */
-   }
-   
-   .stat-meta {
-     font-family: var(--font-mono);
-     font-size: 0.52rem;
-     color: rgba(255, 255, 255, 0.35);
-     letter-spacing: 0.1em;
-     margin-bottom: 2px;
-     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-     padding-bottom: 3px;
-   }
-   
-   .stat-label {
-     position: relative;
-     z-index: 1;
-     color: rgba(255, 255, 255, 0.8);
-     font-size: 0.76rem;
-     font-weight: 700;
-   }
-   
-   .stat-value {
-     position: absolute;
-     right: 18px;
-     bottom: 16px;
-     z-index: 1;
-     display: block;
-     color: var(--neon-cyan);
-     font-family: var(--font-mono);
-     font-size: 2.7rem;
-     font-weight: 800;
-     line-height: 1;
-     text-shadow: 0 0 15px rgba(0, 240, 255, 0.6);
-   }
-   
-   .win-panel {
-     border-color: rgba(255, 183, 0, 0.4);
-     box-shadow: var(--neon-glow-gold), 0 10px 40px rgba(0, 0, 0, 0.6);
-     background: 
-       linear-gradient(135deg, rgba(255, 183, 0, 0.06), transparent 35%),
-       var(--void-panel);
-   }
-   .win-panel .hud-corner {
-     border-color: var(--neon-gold);
-   }
-   .win-panel .stat-value {
-     color: var(--neon-gold);
-     text-shadow: 0 0 15px rgba(255, 183, 0, 0.6);
-   }
-   
-   .stat-unit {
-     font-family: var(--font-mono);
-     font-size: 0.5rem;
-     color: rgba(255, 255, 255, 0.25);
-     margin-top: 8px;
-   }
-   
-   /* ==========================================
-      3. TIMER PANEL - CHRONOMETER
-      ========================================== */
-   
-   .timer-panel {
-     left: 50%;
-     bottom: 24px;
-     min-width: 256px;
-     padding: 10px 24px 12px;
-     clip-path: polygon(16px 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 16px 100%, 0 50%);
-     transform: translateX(-50%);
-     display: flex;
-     align-items: center;
-     justify-content: space-between;
-     gap: 12px;
-   }
-   .timer-panel::after {
-     display: none;
-   }
-   
-   .timer-greeble-left,
-   .timer-greeble-right {
-     font-family: var(--font-mono);
-     font-size: 0.52rem;
-     color: rgba(0, 240, 255, 0.4);
-     writing-mode: vertical-rl;
-     text-orientation: mixed;
-     letter-spacing: 0.1em;
-   }
-   
-   .timer-greeble-right {
-     transform: rotate(180deg);
-   }
-   
-   .timer-center-block {
-     text-align: center;
-     flex-grow: 1;
-   }
-   
-   .timer-label {
-     position: relative;
-     z-index: 1;
-     display: block;
-     color: rgba(255, 255, 255, 0.5);
-     font-size: 0.62rem;
-     font-weight: 700;
-     letter-spacing: 0.12em;
-     text-transform: uppercase;
-   }
-   
-   .timer-value {
-     position: relative;
-     z-index: 1;
-     display: block;
-     margin-top: 1px;
-     color: #ffffff;
-     font-family: var(--font-mono);
-     font-size: 2.2rem;
-     font-weight: 800;
-     line-height: 1;
-     text-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
-     letter-spacing: 0.05em;
-   }
-   
-   /* Countdown low-time alert state triggers red alert */
-   @keyframes danger-alert-pulse {
-     0%, 100% {
-       border-color: var(--neon-red);
-       box-shadow: 0 0 15px rgba(255, 51, 51, 0.3), inset 0 0 15px rgba(255, 51, 51, 0.15);
-       background: rgba(26, 4, 8, 0.8);
-     }
-     50% {
-       border-color: #ff0000;
-       box-shadow: 0 0 35px rgba(2ff, 0, 0, 0.85), inset 0 0 25px rgba(255, 0, 0, 0.4);
-       background: rgba(45, 6, 12, 0.95);
-     }
-   }
-   .timer-panel.danger-alert {
-     animation: danger-alert-pulse 1s infinite alternate !important;
-   }
-   .timer-panel.danger-alert .timer-value {
-     color: var(--neon-red) !important;
-     text-shadow: 0 0 18px rgba(255, 51, 51, 0.8) !important;
-   }
-   .timer-panel.danger-alert .timer-label {
-     color: #ff8888 !important;
-     animation: blinker 0.6s step-end infinite;
-   }
-   .timer-panel.danger-alert .hud-corner {
-     border-color: var(--neon-red);
-   }
-   
-   /* ==========================================
-      4. GOAL PANEL - CONTAINER PROGRESS
-      ========================================== */
-   
-   .goal-panel {
-     right: 28px;
-     bottom: 28px;
-     width: 320px;
-     padding: 12px 18px;
-     clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
-   }
-   .goal-panel::after {
-     display: none;
-   }
-   
-   .goal-topline {
-     position: relative;
-     z-index: 1;
-     display: flex;
-     align-items: center;
-     justify-content: space-between;
-     color: rgba(255, 255, 255, 0.8);
-     font-size: 0.74rem;
-     font-weight: 700;
-   }
-   
-   .goal-header-text {
-     letter-spacing: 0.08em;
-     text-transform: uppercase;
-   }
-   
-   .goal-numbers {
-     color: #ffffff;
-     font-family: var(--font-mono);
-     font-size: 1.05rem;
-     font-weight: 800;
-     text-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
-   }
-   
-   /* Warp Drive energy container track */
-   .goal-track {
-     position: relative;
-     z-index: 1;
-     height: 12px;
-     margin-top: 10px;
-     overflow: hidden;
-     border: 1px solid rgba(0, 240, 255, 0.25);
-     border-radius: 4px;
-     background: 
-       repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 18px),
-       #010307;
-     box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.8);
-   }
-   
-   /* Glimmering warp energy core progress bar */
-   .goal-fill {
-     width: 0%;
-     height: 100%;
-     border-radius: inherit;
-     background: linear-gradient(90deg, 
-       var(--neon-magenta) 0%, 
-       var(--neon-cyan) 45%, 
-       var(--neon-green) 100%
-     );
-     background-size: 200% auto;
-     box-shadow: 0 0 12px var(--neon-cyan);
-     position: relative;
-     transition: width 0.5s cubic-bezier(0.1, 0.9, 0.2, 1);
-     animation: energy-pulse 2s linear infinite;
-   }
-   
-   @keyframes energy-pulse {
-     0% { background-position: 0% 50%; }
-     100% { background-position: 200% 50%; }
-   }
-   
-   /* Glowing plasma charge sweep head */
-   .goal-fill::after {
-     content: '';
-     position: absolute;
-     right: 0;
-     top: 0;
-     bottom: 0;
-     width: 8px;
-     background: #ffffff;
-     box-shadow: 0 0 15px #ffffff, -4px 0 12px var(--neon-green);
-     filter: blur(1px);
-   }
-   
-   .goal-details {
-     display: flex;
-     justify-content: space-between;
-     margin-top: 8px;
-     font-family: var(--font-mono);
-     font-size: 0.52rem;
-     color: rgba(0, 240, 255, 0.65);
-     border-top: 1px solid rgba(0, 240, 255, 0.1);
-     padding-top: 6px;
-     letter-spacing: 0.08em;
-   }
-   
-   /* ==========================================
-      5. MISSION CONTROL - COMMAND CENTER TERMINAL
-      ========================================== */
-   
-   .control-page {
-     min-height: 100vh;
-     color: #f0f6ff;
-     font-family: var(--font-hud);
-     background: 
-       radial-gradient(circle at 50% 50%, rgba(8, 18, 38, 0.95) 0%, #010307 100%),
-       repeating-linear-gradient(0deg, rgba(0, 240, 255, 0.015) 0px, rgba(0, 240, 255, 0.015) 1px, transparent 1px, transparent 40px),
-       repeating-linear-gradient(90deg, rgba(0, 240, 255, 0.015) 0px, rgba(0, 240, 255, 0.015) 1px, transparent 1px, transparent 40px);
-     letter-spacing: 0.04em;
-   }
-   
-   .control-shell {
-     width: min(1280px, calc(100vw - 32px));
-     margin: 0 auto;
-     padding: 30px 0 44px;
-   }
-   
-   .control-header {
-     display: flex;
-     align-items: center;
-     justify-content: space-between;
-     gap: 18px;
-     margin-bottom: 24px;
-     border-bottom: 1px dashed rgba(0, 240, 255, 0.25);
-     padding-bottom: 16px;
-   }
-   
-   .eyebrow {
-     margin: 0 0 5px;
-     color: var(--neon-magenta);
-     font-size: 0.72rem;
-     font-weight: 700;
-     text-transform: uppercase;
-     letter-spacing: 0.2em;
-     text-shadow: 0 0 10px rgba(255, 0, 127, 0.3);
-   }
-   
-   .dashboard-diagnostic {
-     display: flex;
-     gap: 16px;
-     margin-top: 6px;
-     font-family: var(--font-mono);
-     font-size: 0.62rem;
-     color: var(--neon-cyan);
-     opacity: 0.75;
-   }
-   
-   h1,
-   h2 {
-     margin: 0;
-     line-height: 1.1;
-   }
-   
-   h1 {
-     color: #ffffff;
-     font-size: 2.5rem;
-     font-weight: 900;
-     text-shadow: 0 0 25px rgba(0, 240, 255, 0.35);
-     letter-spacing: 0.08em;
-   }
-   
-   h2 {
-     color: #ffffff;
-     font-size: 0.95rem;
-     font-weight: 700;
-     letter-spacing: 0.08em;
-     text-transform: uppercase;
-     border-bottom: 1px solid rgba(0, 240, 255, 0.2);
-     padding-bottom: 6px;
-     width: 100%;
-   }
-   
-   .connection-badge {
-     min-width: 112px;
-     padding: 8px 16px;
-     border: 1px solid var(--glass-border-soft);
-     border-radius: 3px;
-     color: rgba(255, 255, 255, 0.4);
-     background: rgba(255, 255, 255, 0.03);
-     box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.5);
-     font-family: var(--font-mono);
-     font-size: 0.72rem;
-     font-weight: 700;
-     text-align: center;
-     letter-spacing: 0.1em;
-     text-transform: uppercase;
-     transition: all 0.3s ease;
-   }
-   
-   .connection-badge.online {
-     border-color: var(--neon-green);
-     color: var(--neon-green);
-     background: rgba(57, 255, 14, 0.06);
-     box-shadow: 0 0 15px rgba(57, 255, 14, 0.2), inset 0 0 10px rgba(57, 255, 14, 0.1);
-   }
-   
-   .connection-badge.offline {
-     border-color: var(--neon-red);
-     color: var(--neon-red);
-     background: rgba(255, 51, 51, 0.06);
-     box-shadow: 0 0 15px rgba(255, 51, 51, 0.2), inset 0 0 10px rgba(255, 51, 51, 0.1);
-   }
-   
-   .preview-band {
-     display: grid;
-     grid-template-columns: minmax(0, 1fr) 340px;
-     gap: 20px;
-     align-items: stretch;
-     margin-bottom: 24px;
-   }
-   
-   /* Cockpit Panels design */
-   .preview-frame,
-   .url-panel,
-   .control-panel {
-     border: 1px solid var(--glass-border);
-     border-radius: 4px;
-     background: 
-       linear-gradient(130deg, rgba(0, 240, 255, 0.08), transparent 35%),
-       linear-gradient(310deg, rgba(255, 0, 127, 0.04), transparent 45%),
-       var(--void-panel-solid);
-     box-shadow: 0 15px 50px rgba(0, 0, 0, 0.7), inset 0 0 20px rgba(0, 240, 255, 0.03);
-     backdrop-filter: blur(12px);
-     padding: 20px;
-     transition: all 0.3s ease;
-   }
-   
-   .preview-frame {
-     position: relative;
-     overflow: hidden;
-     aspect-ratio: 16 / 9;
-     padding: 0; /* clean fit */
-   }
-   
-   .preview-frame::before {
-     position: absolute;
-     inset: 0;
-     border: 1px solid rgba(0, 240, 255, 0.12);
-     content: "";
-     pointer-events: none;
-     z-index: 2;
-   }
-   
-   .preview-topbar {
-     position: absolute;
-     top: 0;
-     left: 0;
-     right: 0;
-     z-index: 3;
-     display: flex;
-     justify-content: space-between;
-     padding: 8px 16px;
-     color: rgba(0, 240, 255, 0.7);
-     background: rgba(2, 4, 8, 0.85);
-     border-bottom: 1px solid rgba(0, 240, 255, 0.2);
-     font-family: var(--font-mono);
-     font-size: 0.68rem;
-     font-weight: 700;
-     text-transform: uppercase;
-   }
-   
-   .preview-frame iframe {
-     width: 100%;
-     height: 100%;
-     border: 0;
-     padding-top: 31px; /* clear topbar */
-     background: #010204;
-   }
-   
-   .url-panel {
-     display: grid;
-     gap: 14px;
-     align-content: center;
-   }
-   
-   .control-grid {
-     display: grid;
-     grid-template-columns: repeat(4, minmax(0, 1fr));
-     gap: 20px;
-   }
-   
-   .control-panel {
-     display: grid;
-     gap: 18px;
-     align-content: start;
-     min-height: 280px;
-     position: relative;
-   }
-   
-   /* Greeble details inside console dashboard panels */
-   .control-panel::before {
-     content: "[SYS_DEC]";
-     position: absolute;
-     right: 12px;
-     top: 8px;
-     font-family: var(--font-mono);
-     font-size: 0.45rem;
-     color: rgba(0, 240, 255, 0.3);
-     letter-spacing: 0.05em;
-   }
-   
-   .panel-heading {
-     display: flex;
-     align-items: center;
-     justify-content: space-between;
-     gap: 12px;
-     min-height: 38px;
-   }
-   
-   label {
-     display: grid;
-     gap: 6px;
-     color: rgba(255, 255, 255, 0.55);
-     font-size: 0.72rem;
-     font-weight: 700;
-     text-transform: uppercase;
-     letter-spacing: 0.08em;
-   }
-   
-   input {
-     width: 100%;
-     min-height: 40px;
-     border: 1px solid rgba(0, 240, 255, 0.2);
-     border-radius: 3px;
-     color: #ffffff;
-     background: rgba(1, 2, 5, 0.75);
-     font-family: var(--font-mono);
-     font-size: 0.85rem;
-     outline: none;
-     padding: 9px 12px;
-     box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
-     transition: all 0.2s ease;
-   }
-   
-   input:focus {
-     border-color: var(--neon-cyan);
-     box-shadow: 0 0 12px rgba(0, 240, 255, 0.25), inset 0 0 8px rgba(0, 240, 255, 0.1);
-   }
-   
-   button {
-     min-height: 38px;
-     border: 1px solid transparent;
-     border-radius: 3px;
-     color: #ffffff;
-     cursor: pointer;
-     font-family: var(--font-hud);
-     font-weight: 700;
-     letter-spacing: 0.08em;
-     text-transform: uppercase;
-     font-size: 0.76rem;
-     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-   }
-   
-   button:hover {
-     filter: brightness(1.15);
-     box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
-   }
-   
-   button:active {
-     transform: translateY(1px);
-   }
-   
-   /* Cockpit button designs */
-   .primary-button {
-     border-color: rgba(0, 240, 255, 0.5);
-     color: #010408;
-     background: linear-gradient(180deg, #adfcff, var(--neon-cyan));
-     box-shadow: 0 6px 20px rgba(0, 240, 255, 0.2);
-   }
-   
-   .secondary-button {
-     border-color: rgba(255, 183, 0, 0.5);
-     color: #080501;
-     background: linear-gradient(180deg, #ffde8a, var(--neon-gold));
-     box-shadow: 0 6px 20px rgba(255, 183, 0, 0.15);
-   }
-   
-   .ghost-button {
-     border-color: rgba(255, 255, 255, 0.12);
-     color: rgba(255, 255, 255, 0.7);
-     background: rgba(255, 255, 255, 0.04);
-     box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.02);
-   }
-   
-   .button-row,
-   .stepper {
-     display: grid;
-     grid-template-columns: repeat(2, minmax(0, 1fr));
-     gap: 10px;
-   }
-   
-   .counter-row {
-     display: grid;
-     grid-template-columns: minmax(0, 1fr) 112px;
-     gap: 14px;
-     align-items: center;
-     min-height: 72px;
-     padding: 12px;
-     border: 1px solid rgba(0, 240, 255, 0.15);
-     border-radius: 4px;
-     background: 
-       linear-gradient(90deg, rgba(0, 240, 255, 0.04), transparent),
-       rgba(1, 2, 5, 0.4);
-   }
-   
-   .counter-row span {
-     display: block;
-     color: rgba(255, 255, 255, 0.5);
-     font-size: 0.68rem;
-     font-weight: 700;
-     text-transform: uppercase;
-   }
-   
-   .counter-row strong {
-     display: block;
-     margin-top: 2px;
-     color: var(--neon-cyan);
-     font-family: var(--font-mono);
-     font-size: 1.95rem;
-     font-weight: 800;
-     line-height: 1;
-     text-shadow: 0 0 12px rgba(0, 240, 255, 0.45);
-   }
-   
-   .stepper button {
-     min-width: 0;
-     color: #ffffff;
-     background: rgba(0, 240, 255, 0.06);
-     border-color: rgba(0, 240, 255, 0.2);
-     font-size: 1.25rem;
-     font-family: var(--font-mono);
-   }
-   
-   .timer-readout {
-     padding: 12px;
-     border: 1px solid rgba(0, 240, 255, 0.3);
-     border-radius: 4px;
-     color: #ffffff;
-     background: rgba(1, 2, 5, 0.85);
-     font-family: var(--font-mono);
-     font-size: 2.1rem;
-     font-weight: 800;
-     text-align: center;
-     box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.9);
-     text-shadow: 0 0 10px rgba(255, 255, 255, 0.25);
-   }
-   
-   .segmented-control {
-     display: grid;
-     grid-template-columns: repeat(2, minmax(0, 1fr));
-     padding: 3px;
-     border: 1px solid rgba(0, 240, 255, 0.15);
-     border-radius: 4px;
-     background: rgba(1, 2, 5, 0.7);
-   }
-   
-   .segmented-control button {
-     min-height: 32px;
-     border: 0;
-     color: rgba(255, 255, 255, 0.5);
-     background: transparent;
-     font-size: 0.72rem;
-     border-radius: 2px;
-   }
-   
-   .segmented-control button.active {
-     color: #010408;
-     background: linear-gradient(180deg, #adfcff, var(--neon-cyan));
-     box-shadow: 0 3px 10px rgba(0, 240, 255, 0.3);
-   }
-   
-   /* ==========================================
-      @KEYFRAMES AND RESPONSIVENESS
-      ========================================== */
-   
-   @keyframes anti-gravity {
-     0%,
-     100% {
-       transform: translate(0, 0);
-     }
-   
-     50% {
-       transform: translate(0, -6px);
-     }
-   }
-   
-   @keyframes radar-spin {
-     0% {
-       transform: rotate(0deg);
-     }
-     100% {
-       transform: rotate(360deg);
-     }
-   }
-   
-   @media (prefers-reduced-motion: reduce) {
-     .top-hud,
-     .stat-panel,
-     .goal-panel,
-     .timer-panel {
-       animation: none !important;
-     }
-     .radar-sweep {
-       animation: none !important;
-     }
-   }
-   
-   @media (max-width: 1040px) {
-     .control-grid {
-       grid-template-columns: repeat(2, minmax(0, 1fr));
-     }
-   }
-   
-   @media (max-width: 980px) {
-     .preview-band {
-       grid-template-columns: 1fr;
-     }
-   
-     .control-panel {
-       min-height: auto;
-     }
-   }
-   
-   @media (max-aspect-ratio: 3 / 4) {
-     .screen-accent {
-       left: 4vw;
-       right: 4vw;
-     }
-   
-     .top-hud {
-       top: 22px;
-       width: calc(100vw - 32px);
-       min-height: 70px;
-       padding: 13px 16px;
-     }
-   
-     .streamer-name {
-       font-size: 1.2rem;
-     }
-   
-     .game-title {
-       font-size: 0.68rem;
-     }
-   
-     .stat-stack {
-       top: 118px;
-       left: 16px;
-       right: 16px;
-       grid-template-columns: repeat(2, minmax(0, 1fr));
-     }
-   
-     .stat-panel {
-       width: auto;
-       min-height: 80px;
-     }
-   
-     .stat-value {
-       font-size: 2.2rem;
-     }
-   
-     .timer-panel {
-       bottom: 122px;
-       width: calc(100vw - 32px);
-     }
-   
-     .goal-panel {
-       right: 16px;
-       bottom: 22px;
-       width: calc(100vw - 32px);
-     }
-   }
-   
-   @media (max-width: 620px) {
-     .control-shell {
-       width: min(100vw - 24px, 520px);
-       padding-top: 20px;
-     }
-     
-     .control-grid {
-       grid-template-columns: 1fr;
-     }
-   
-     .control-header {
-       align-items: flex-start;
-       flex-direction: column;
-       gap: 12px;
-     }
-   
-     h1 {
-       font-size: 2rem;
-     }
-   
-     .preview-topbar {
-       font-size: 0.65rem;
-     }
-   }
+:root {
+  color-scheme: dark;
+
+  /* No Man's Sky Cosmic Palette */
+  --nms-emerald: #00ffaa;
+  --nms-cyan: #00f0ff;
+  --nms-gold: #ffd200;
+  --nms-orange: #ff7200;
+  --nms-magenta: #ff007f;
+  --nms-white: #ffffff;
+  --nms-red: #ff3b30;
+  --nms-light-teal: #aaffea;
+  
+  /* Space Voids & Glassmorphism */
+  --void-black: #010307;
+  --void-panel: rgba(4, 9, 20, 0.72);
+  --void-panel-solid: rgba(8, 15, 30, 0.96);
+  --glass-border: rgba(0, 255, 170, 0.32);
+  --glass-border-soft: rgba(0, 240, 255, 0.15);
+  
+  /* Fonts */
+  --font-hud: 'Orbitron', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Oxanium', 'Share Tech Mono', monospace;
+  
+  /* Shadows & Glow Filters */
+  --glow-emerald: 0 0 15px rgba(0, 255, 170, 0.25), inset 0 0 15px rgba(0, 255, 170, 0.08);
+  --glow-cyan: 0 0 15px rgba(0, 240, 255, 0.25), inset 0 0 15px rgba(0, 240, 255, 0.08);
+  --glow-gold: 0 0 15px rgba(255, 210, 0, 0.25);
+  
+  --radius-panel: 6px;
+  font-family: var(--font-hud);
+  letter-spacing: 0.08em;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: transparent;
+  overflow: hidden;
+}
+
+button,
+input {
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+button {
+  user-select: none;
+}
+
+/* CRT monitor scanlines scan lines */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.1) 50%
+  );
+  background-size: 100% 4px;
+  opacity: 0.3;
+}
+
+/* Base overlay stage */
+.overlay-page {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  color: #f5f9ff;
+  background: transparent;
+}
+
+/* Widescreen space preview demo background */
+.overlay-page.demo-mode {
+  background: 
+    radial-gradient(circle at 50% 50%, rgba(12, 28, 54, 0.3) 0%, #010307 100%);
+}
+
+.starfield {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.3;
+  mix-blend-mode: screen;
+}
+
+.demo-mode .starfield {
+  opacity: 0.9;
+}
+
+.overlay-stage {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  isolation: isolate;
+}
+
+/* Top & Bottom decorative border sweeps */
+.screen-accent {
+  position: absolute;
+  left: 4vw;
+  right: 4vw;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    var(--nms-emerald) 20%, 
+    var(--nms-magenta) 50%, 
+    var(--nms-cyan) 80%, 
+    transparent
+  );
+  opacity: 0.6;
+  filter: drop-shadow(0 0 4px var(--nms-cyan));
+  pointer-events: none;
+}
+
+.screen-accent-top {
+  top: 14px;
+}
+
+.screen-accent-bottom {
+  bottom: 14px;
+}
+
+/* ========================================================
+   NO MAN'S SKY HUD GLASS PANEL (DRAGGABLE INDEPENDENT BLOCKS)
+   ======================================================== */
+
+.hud-panel {
+  position: absolute !important; /* Force absolute coordinates for drag engine */
+  overflow: visible !important; /* Allow circular gauges to float outer margins */
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-panel);
+  color: #ffffff;
+  background: 
+    linear-gradient(135deg, rgba(0, 255, 170, 0.08), transparent 30%),
+    linear-gradient(315deg, rgba(255, 0, 127, 0.05), transparent 40%),
+    var(--void-panel);
+  box-shadow: var(--glow-emerald), 0 10px 35px rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(14px) saturate(1.3);
+  transform-style: preserve-3d;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Grabbing cursor states strictly in editor frames */
+.demo-mode .hud-panel,
+.control-page .hud-panel {
+  cursor: grab !important;
+}
+.demo-mode .hud-panel:active,
+.control-page .hud-panel:active {
+  cursor: grabbing !important;
+}
+
+/* Tech Grid inside panel backgrounds */
+.hud-panel::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: 
+    repeating-linear-gradient(135deg, rgba(0, 255, 170, 0.02) 0 1px, transparent 1px 18px);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Technical greeble bar */
+.hud-panel::after {
+  position: absolute;
+  right: 14px;
+  bottom: 8px;
+  width: 32px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--nms-emerald));
+  box-shadow: 0 0 8px var(--nms-emerald);
+  content: "";
+  pointer-events: none;
+}
+
+/* Cybernetic corner markers */
+.hud-corner {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--nms-emerald);
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0.8;
+}
+.hud-corner.top-left { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.hud-corner.top-right { top: -1px; right: -1px; border-left: none; border-bottom: none; }
+.hud-corner.bottom-left { bottom: -1px; left: -1px; border-right: none; border-top: none; }
+.hud-corner.bottom-right { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+/* Anti-gravity breathing animation */
+.top-hud { animation: anti-gravity 6.5s ease-in-out infinite; }
+.kill-panel { animation: anti-gravity 7s ease-in-out infinite; animation-delay: -1.5s; }
+.win-panel { animation: anti-gravity 7.5s ease-in-out infinite; animation-delay: -3s; }
+.timer-panel { animation: anti-gravity 8s ease-in-out infinite; animation-delay: -4.5s; }
+.goal-panel { animation: anti-gravity 7.2s ease-in-out infinite; animation-delay: -6s; }
+
+/* Update Flash Animations */
+@keyframes panel-spark-emerald {
+  0% { border-color: #ffffff; box-shadow: 0 0 30px #ffffff, 0 0 20px var(--nms-emerald), inset 0 0 12px #ffffff; transform: scale(1.02); }
+  100% { border-color: var(--glass-border); box-shadow: var(--glow-emerald); transform: scale(1); }
+}
+@keyframes panel-spark-gold {
+  0% { border-color: #ffffff; box-shadow: 0 0 30px #ffffff, 0 0 20px var(--nms-gold), inset 0 0 12px #ffffff; transform: scale(1.02); }
+  100% { border-color: var(--nms-gold); box-shadow: var(--glow-gold); transform: scale(1); }
+}
+.kill-panel.state-flash { animation: panel-spark-emerald 0.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards !important; }
+.win-panel.state-flash { animation: panel-spark-gold 0.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards !important; }
+.goal-panel.state-flash { animation: panel-spark-emerald 0.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards !important; }
+
+/* ========================================================
+   NO MAN'S SKY CIRCULAR LIFE-SUPPORT/HAZARD METERS (SVG)
+   ======================================================== */
+
+.nms-circle-meter {
+  position: absolute;
+  width: 76px;
+  height: 76px;
+  right: 12px;
+  bottom: 8px;
+  pointer-events: none;
+  transform: rotate(-90deg);
+  z-index: 2;
+}
+
+.nms-circle-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.05);
+  stroke-width: 2.5;
+}
+
+.nms-circle-fill {
+  fill: none;
+  stroke: var(--nms-cyan);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 220;
+  stroke-dashoffset: 65; /* creates a No Man's Sky semi-circular arch sweep */
+  filter: drop-shadow(0 0 6px var(--nms-cyan));
+  animation: nms-gauge-flow 5s ease-in-out infinite alternate;
+}
+
+.win-panel .nms-circle-fill {
+  stroke: var(--nms-gold);
+  filter: drop-shadow(0 0 6px var(--nms-gold));
+}
+
+@keyframes nms-gauge-flow {
+  0% { stroke-dashoffset: 145; }
+  100% { stroke-dashoffset: 35; }
+}
+
+/* ========================================================
+   1. TOP HUD - NAV CONSOLE
+   ======================================================== */
+
+.top-hud {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  width: 480px;
+  min-height: 64px;
+  padding: 10px 20px;
+  clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+}
+
+.radar-container {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(0, 255, 170, 0.35);
+  border-radius: 50%;
+  background: rgba(0, 255, 170, 0.03);
+  overflow: hidden;
+}
+
+.radar-grid {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: 
+    radial-gradient(circle, transparent 35%, rgba(0, 255, 170, 0.15) 35%, transparent 37%, transparent 65%, rgba(0, 255, 170, 0.15) 65%, transparent 67%),
+    linear-gradient(90deg, transparent 49%, rgba(0, 255, 170, 0.12) 49%, rgba(0, 255, 170, 0.12) 51%, transparent 51%),
+    linear-gradient(0deg, transparent 49%, rgba(0, 255, 170, 0.12) 49%, rgba(0, 255, 170, 0.12) 51%, transparent 51%);
+}
+
+.radar-sweep {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: conic-gradient(from 0deg, rgba(0, 255, 170, 0.45) 0deg, transparent 140deg);
+  border-radius: 50%;
+  animation: radar-spin 4s linear infinite;
+  transform-origin: center;
+}
+
+.radar-blip {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: var(--nms-orange);
+  border-radius: 50%;
+  top: 30%;
+  left: 68%;
+  box-shadow: 0 0 8px var(--nms-orange);
+  animation: radar-fade 2s ease-out infinite;
+}
+
+.status-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+}
+
+.status-pill {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  padding: 4px 8px;
+  border: 1px solid var(--nms-emerald);
+  border-radius: 2px;
+  color: #030805;
+  background: linear-gradient(180deg, #c0ffc8, var(--nms-emerald));
+  box-shadow: 0 0 12px rgba(0, 255, 170, 0.4);
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.status-pill::before {
+  width: 5px;
+  height: 5px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: #030805;
+  content: "";
+  animation: blinker 1.4s linear infinite;
+}
+
+@keyframes blinker { 50% { opacity: 0.1; } }
+
+.telemetry-tag {
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  font-weight: 700;
+  color: var(--nms-emerald);
+  letter-spacing: 0.08em;
+}
+
+.streamer-name {
+  max-width: 100%;
+  overflow: hidden;
+  color: #ffffff;
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 0 10px rgba(0, 255, 170, 0.35);
+  white-space: nowrap;
+}
+
+.game-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--nms-gold);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.game-title::before {
+  display: inline-block;
+  width: 18px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--nms-magenta), var(--nms-gold));
+  content: "";
+}
+
+.hud-serial {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  color: rgba(0, 255, 170, 0.7);
+  line-height: 1.3;
+  border-left: 1px solid rgba(0, 255, 170, 0.2);
+  padding-left: 10px;
+}
+
+/* ========================================================
+   2. STAT PANEL - INDEPENDENT CYBERMETRIC CHANNELS
+   ======================================================== */
+
+.stat-panel {
+  display: grid;
+  grid-template-rows: auto auto auto;
+  width: 160px;
+  min-height: 76px;
+  padding: 8px 14px 6px;
+  clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+}
+
+.stat-panel::after {
+  display: none;
+}
+
+.stat-meta {
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: 0.08em;
+  margin-bottom: 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 2px;
+}
+
+.stat-label {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.stat-value {
+  position: absolute;
+  right: 28px;
+  bottom: 20px;
+  z-index: 3;
+  color: var(--nms-cyan);
+  font-family: var(--font-mono);
+  font-size: 2.3rem;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 0 15px rgba(0, 240, 255, 0.6);
+}
+
+.win-panel {
+  border-color: rgba(255, 210, 0, 0.35);
+  box-shadow: var(--glow-gold), 0 10px 35px rgba(0, 0, 0, 0.65);
+  background: 
+    linear-gradient(135deg, rgba(255, 210, 0, 0.06), transparent 30%),
+    var(--void-panel);
+}
+.win-panel .hud-corner {
+  border-color: var(--nms-gold);
+}
+.win-panel .stat-value {
+  color: var(--nms-gold);
+  text-shadow: 0 0 15px rgba(255, 210, 0, 0.6);
+}
+
+.stat-unit {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  color: rgba(255, 255, 255, 0.25);
+  margin-top: 6px;
+}
+
+/* ========================================================
+   3. TIMER PANEL - DIAL
+   ======================================================== */
+
+.timer-panel {
+  width: 220px;
+  min-height: 72px;
+  padding: 8px 18px 10px;
+  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 14px 100%, 0 50%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.timer-panel::after { display: none; }
+
+.timer-greeble-left,
+.timer-greeble-right {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  color: rgba(0, 255, 170, 0.35);
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  letter-spacing: 0.08em;
+}
+.timer-greeble-right {
+  transform: rotate(180deg);
+}
+
+.timer-center-block {
+  text-align: center;
+  flex-grow: 1;
+}
+
+.timer-label {
+  display: block;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.timer-value {
+  display: block;
+  margin-top: 1px;
+  color: #ffffff;
+  font-family: var(--font-mono);
+  font-size: 1.95rem;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.35);
+  letter-spacing: 0.05em;
+}
+
+/* Low countdown time red alert */
+@keyframes danger-alert-nms {
+  0%, 100% {
+    border-color: var(--nms-red);
+    box-shadow: 0 0 15px rgba(255, 59, 48, 0.35), inset 0 0 15px rgba(255, 59, 48, 0.15);
+    background: rgba(26, 4, 6, 0.85);
+  }
+  50% {
+    border-color: #ff2d55;
+    box-shadow: 0 0 35px rgba(255, 45, 85, 0.8), inset 0 0 25px rgba(255, 45, 85, 0.35);
+    background: rgba(45, 6, 10, 0.95);
+  }
+}
+.timer-panel.danger-alert {
+  animation: danger-alert-nms 1s infinite alternate !important;
+}
+.timer-panel.danger-alert .timer-value {
+  color: var(--nms-red) !important;
+  text-shadow: 0 0 15px rgba(255, 59, 48, 0.85) !important;
+}
+.timer-panel.danger-alert .timer-label {
+  color: #ff8b85 !important;
+  animation: blinker 0.6s step-end infinite;
+}
+.timer-panel.danger-alert .hud-corner {
+  border-color: var(--nms-red);
+}
+
+/* ========================================================
+   4. GOAL PANEL - CONTAINER PROGRESS
+   ======================================================== */
+
+.goal-panel {
+  width: 280px;
+  min-height: 80px;
+  padding: 10px 16px;
+  clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
+}
+.goal-panel::after { display: none; }
+
+.goal-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.goal-header-text {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.goal-numbers {
+  color: #ffffff;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 800;
+  text-shadow: 0 0 8px rgba(0, 255, 170, 0.4);
+}
+
+/* Warp core track */
+.goal-track {
+  position: relative;
+  height: 10px;
+  margin-top: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 255, 170, 0.25);
+  border-radius: 4px;
+  background: 
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 16px),
+    #010306;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.8);
+}
+
+/* Glowing warp energy progress bar */
+.goal-fill {
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, 
+    var(--nms-magenta) 0%, 
+    var(--nms-cyan) 45%, 
+    var(--nms-emerald) 100%
+  );
+  background-size: 200% auto;
+  box-shadow: 0 0 10px var(--nms-cyan);
+  position: relative;
+  transition: width 0.5s cubic-bezier(0.1, 0.9, 0.2, 1);
+  animation: energy-pulse 2s linear infinite;
+}
+
+@keyframes energy-pulse {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* Warp tip comet head */
+.goal-fill::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: #ffffff;
+  box-shadow: 0 0 12px #ffffff, -3px 0 10px var(--nms-emerald);
+  filter: blur(1px);
+}
+
+.goal-details {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  color: rgba(0, 255, 170, 0.65);
+  border-top: 1px solid rgba(0, 255, 170, 0.1);
+  padding-top: 5px;
+  letter-spacing: 0.08em;
+}
+
+/* ========================================================
+   5. MISSION CONTROL - COMMAND CENTER TERMINAL
+   ======================================================== */
+
+.control-page {
+  min-height: 100vh;
+  color: #e5f0ff;
+  font-family: var(--font-hud);
+  background: 
+    radial-gradient(circle at 50% 50%, rgba(6, 17, 36, 0.96) 0%, #010306 100%),
+    repeating-linear-gradient(0deg, rgba(0, 255, 170, 0.012) 0px, rgba(0, 255, 170, 0.012) 1px, transparent 1px, transparent 40px),
+    repeating-linear-gradient(90deg, rgba(0, 255, 170, 0.012) 0px, rgba(0, 255, 170, 0.012) 1px, transparent 1px, transparent 40px);
+  letter-spacing: 0.04em;
+}
+
+.control-shell {
+  width: min(1320px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: 30px 0 44px;
+}
+
+.control-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 24px;
+  border-bottom: 1px dashed rgba(0, 255, 170, 0.25);
+  padding-bottom: 16px;
+}
+
+.control-title-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.eyebrow {
+  margin: 0 0 5px;
+  color: var(--nms-magenta);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  text-shadow: 0 0 10px rgba(255, 0, 127, 0.3);
+}
+
+.dashboard-diagnostic {
+  display: flex;
+  gap: 16px;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--nms-cyan);
+  opacity: 0.8;
+}
+
+h1 {
+  color: #ffffff;
+  font-size: 2.6rem;
+  font-weight: 900;
+  text-shadow: 0 0 25px rgba(0, 255, 170, 0.3);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+h2 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(0, 255, 170, 0.18);
+  padding-bottom: 6px;
+  width: 100%;
+}
+
+.connection-badge {
+  min-width: 112px;
+  padding: 8px 16px;
+  border: 1px solid var(--glass-border-soft);
+  border-radius: 3px;
+  color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.5);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: all 0.3s ease;
+}
+
+.connection-badge.online {
+  border-color: var(--nms-emerald);
+  color: var(--nms-emerald);
+  background: rgba(0, 255, 170, 0.06);
+  box-shadow: 0 0 15px rgba(0, 255, 170, 0.2), inset 0 0 10px rgba(0, 255, 170, 0.1);
+}
+
+.connection-badge.offline {
+  border-color: var(--nms-red);
+  color: var(--nms-red);
+  background: rgba(255, 59, 48, 0.06);
+  box-shadow: 0 0 15px rgba(255, 59, 48, 0.2), inset 0 0 10px rgba(255, 59, 48, 0.1);
+}
+
+.preview-band {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+  align-items: stretch;
+  margin-bottom: 24px;
+}
+
+.preview-frame,
+.url-panel,
+.control-panel {
+  border: 1px solid var(--glass-border);
+  border-radius: 4px;
+  background: 
+    linear-gradient(130deg, rgba(0, 255, 170, 0.08), transparent 35%),
+    linear-gradient(310deg, rgba(255, 0, 127, 0.04), transparent 45%),
+    var(--void-panel-solid);
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.75), inset 0 0 20px rgba(0, 255, 170, 0.02);
+  backdrop-filter: blur(12px);
+  padding: 20px;
+}
+
+.preview-frame {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  padding: 0;
+}
+
+.preview-frame::before {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(0, 255, 170, 0.12);
+  content: "";
+  pointer-events: none;
+  z-index: 2;
+}
+
+.preview-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 16px;
+  color: rgba(0, 255, 170, 0.75);
+  background: rgba(2, 4, 8, 0.88);
+  border-bottom: 1px solid rgba(0, 255, 170, 0.2);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.preview-frame iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding-top: 31px; /* clear topbar */
+  background: #010204;
+}
+
+.url-panel {
+  display: grid;
+  gap: 14px;
+  align-content: center;
+}
+
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.control-panel {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+  min-height: 280px;
+  position: relative;
+}
+
+.control-panel::before {
+  content: "[ANOMALY_LOG]";
+  position: absolute;
+  right: 12px;
+  top: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  color: rgba(0, 255, 170, 0.35);
+  letter-spacing: 0.05em;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 38px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Ensure bright, fully readable white text in inputs */
+input {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid rgba(0, 255, 170, 0.2);
+  border-radius: 3px;
+  color: #ffffff !important; /* Force high contrast white text */
+  background: rgba(1, 2, 5, 0.85);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  outline: none;
+  padding: 9px 12px;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+  transition: all 0.2s ease;
+}
+
+input:focus {
+  border-color: var(--nms-cyan);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.3), inset 0 0 8px rgba(0, 240, 255, 0.1);
+}
+
+button {
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: #ffffff;
+  cursor: pointer;
+  font-family: var(--font-hud);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.76rem;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+button:hover {
+  filter: brightness(1.2);
+  box-shadow: 0 0 18px rgba(0, 255, 170, 0.3);
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+/* High Contrast Glowing Button Overhaul */
+.primary-button {
+  border: 1px solid var(--nms-emerald) !important;
+  color: #010408 !important;
+  background: linear-gradient(180deg, #c3ffd7, var(--nms-emerald)) !important;
+  box-shadow: 0 4px 15px rgba(0, 255, 170, 0.35) !important;
+  text-shadow: none !important;
+}
+
+.secondary-button {
+  border: 1px solid var(--nms-gold) !important;
+  color: #080501 !important;
+  background: linear-gradient(180deg, #fff2be, var(--nms-gold)) !important;
+  box-shadow: 0 4px 15px rgba(255, 210, 0, 0.3) !important;
+  text-shadow: none !important;
+}
+
+.ghost-button {
+  border: 1px solid rgba(0, 240, 255, 0.4) !important;
+  color: var(--nms-cyan) !important;
+  background: rgba(0, 240, 255, 0.06) !important;
+  box-shadow: inset 0 0 8px rgba(0, 240, 255, 0.04) !important;
+  text-shadow: 0 0 6px rgba(0, 240, 255, 0.3) !important;
+}
+
+/* Specific glowing style for Copy URL button to fix gray contrast overlap */
+#copyOverlayButton {
+  border: 1px solid var(--nms-cyan) !important;
+  color: #010408 !important;
+  background: linear-gradient(180deg, #adfcff, var(--nms-cyan)) !important;
+  box-shadow: 0 4px 15px rgba(0, 240, 255, 0.4) !important;
+  text-shadow: none !important;
+}
+
+.button-row,
+.stepper {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.counter-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  gap: 14px;
+  align-items: center;
+  min-height: 72px;
+  padding: 12px;
+  border: 1px solid rgba(0, 255, 170, 0.15);
+  border-radius: 4px;
+  background: 
+    linear-gradient(90deg, rgba(0, 255, 170, 0.04), transparent),
+    rgba(1, 2, 5, 0.45);
+}
+
+.counter-row span {
+  display: block;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.counter-row strong {
+  display: block;
+  margin-top: 2px;
+  color: var(--nms-cyan);
+  font-family: var(--font-mono);
+  font-size: 1.95rem;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+}
+
+.stepper button {
+  min-width: 0;
+  color: #ffffff;
+  background: rgba(0, 255, 170, 0.06);
+  border: 1px solid rgba(0, 255, 170, 0.25) !important;
+  font-size: 1.25rem;
+  font-family: var(--font-mono);
+}
+
+.timer-readout {
+  padding: 12px;
+  border: 1px solid rgba(0, 255, 170, 0.25);
+  border-radius: 4px;
+  color: #ffffff;
+  background: rgba(1, 2, 5, 0.85);
+  font-family: var(--font-mono);
+  font-size: 2.1rem;
+  font-weight: 800;
+  text-align: center;
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.9);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.25);
+}
+
+.segmented-control {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 3px;
+  border: 1px solid rgba(0, 255, 170, 0.15);
+  border-radius: 4px;
+  background: rgba(1, 2, 5, 0.7);
+}
+
+.segmented-control button {
+  min-height: 32px;
+  border: 0;
+  color: rgba(255, 255, 255, 0.45);
+  background: transparent;
+  font-size: 0.72rem;
+  border-radius: 2px;
+}
+
+.segmented-control button.active {
+  color: #010408 !important;
+  background: linear-gradient(180deg, #c3ffd7, var(--nms-emerald)) !important;
+  border: 1px solid var(--nms-emerald) !important;
+  box-shadow: 0 3px 10px rgba(0, 255, 170, 0.25);
+}
+
+/* ========================================================
+   KEYFRAMES AND RESPONSIVENESS
+   ======================================================== */
+
+@keyframes anti-gravity {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(0, -6px); }
+}
+
+@keyframes radar-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .top-hud, .stat-panel, .goal-panel, .timer-panel { animation: none !important; }
+  .radar-sweep { animation: none !important; }
+}
+
+@media (max-width: 1040px) {
+  .control-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 980px) {
+  .preview-band { grid-template-columns: 1fr; }
+  .control-panel { min-height: auto; }
+}
+
+@media (max-aspect-ratio: 3 / 4) {
+  .screen-accent { left: 4vw; right: 4vw; }
+  .top-hud { top: 22px; width: calc(100vw - 32px); min-height: 70px; padding: 13px 16px; }
+  .streamer-name { font-size: 1.15rem; }
+  .game-title { font-size: 0.65rem; }
+  .stat-stack { top: 118px; left: 16px; right: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stat-panel { width: auto; min-height: 80px; }
+  .stat-value { font-size: 2.1rem; }
+  .timer-panel { bottom: 122px; width: calc(100vw - 32px); }
+  .goal-panel { right: 16px; bottom: 22px; width: calc(100vw - 32px); }
+}
+
+@media (max-width: 620px) {
+  .control-shell { width: min(100vw - 24px, 520px); padding-top: 20px; }
+  .control-grid { grid-template-columns: 1fr; }
+  .control-header { align-items: flex-start; flex-direction: column; gap: 12px; }
+  h1 { font-size: 2.1rem; }
+  .preview-topbar { font-size: 0.65rem; }
+}

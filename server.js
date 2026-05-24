@@ -24,6 +24,13 @@ const defaultState = {
     startedAt: null,
     elapsedMs: 0,
     durationMs: 15 * 60 * 1000
+  },
+  layout: {
+    topHud: { x: 50, y: 3 },
+    kill: { x: 5, y: 15 },
+    win: { x: 5, y: 28 },
+    timer: { x: 50, y: 88 },
+    goal: { x: 75, y: 85 }
   }
 };
 
@@ -148,6 +155,23 @@ async function loadState() {
 
 function sanitizeState(input) {
   const timerInput = input.timer && typeof input.timer === "object" ? input.timer : {};
+  const layoutInput = input.layout && typeof input.layout === "object" ? input.layout : {};
+  const defaultLayout = defaultState.layout || {
+    topHud: { x: 50, y: 3 },
+    kill: { x: 5, y: 15 },
+    win: { x: 5, y: 28 },
+    timer: { x: 50, y: 88 },
+    goal: { x: 75, y: 85 }
+  };
+
+  const sanitizePanel = (panel, def) => {
+    const val = layoutInput[panel] && typeof layoutInput[panel] === "object" ? layoutInput[panel] : {};
+    return {
+      x: clampInt(val.x !== undefined ? val.x : def.x, -50, 150),
+      y: clampInt(val.y !== undefined ? val.y : def.y, -50, 150)
+    };
+  };
+
   const next = {
     streamerName: cleanText(input.streamerName, defaultState.streamerName, 28),
     gameTitle: cleanText(input.gameTitle, defaultState.gameTitle, 32),
@@ -163,6 +187,13 @@ function sanitizeState(input) {
       startedAt: Number.isFinite(Number(timerInput.startedAt)) ? Number(timerInput.startedAt) : null,
       elapsedMs: clampInt(timerInput.elapsedMs, 0, 24 * 60 * 60 * 1000),
       durationMs: Math.max(1000, clampInt(timerInput.durationMs, 1000, 24 * 60 * 60 * 1000))
+    },
+    layout: {
+      topHud: sanitizePanel("topHud", defaultLayout.topHud),
+      kill: sanitizePanel("kill", defaultLayout.kill),
+      win: sanitizePanel("win", defaultLayout.win),
+      timer: sanitizePanel("timer", defaultLayout.timer),
+      goal: sanitizePanel("goal", defaultLayout.goal)
     }
   };
 
@@ -250,6 +281,15 @@ function applyAction(action = {}) {
       break;
     case "state:update":
       Object.assign(next, sanitizeState({ ...next, ...action.patch }));
+      break;
+    case "layout:update":
+      if (typeof action.panelId === "string" && next.layout[action.panelId]) {
+        next.layout[action.panelId].x = clampInt(action.x, -50, 150);
+        next.layout[action.panelId].y = clampInt(action.y, -50, 150);
+      }
+      break;
+    case "layout:reset":
+      next.layout = clone(defaultState.layout);
       break;
     default:
       break;
