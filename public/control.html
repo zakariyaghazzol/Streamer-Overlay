@@ -4,14 +4,24 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Space Overlay Control</title>
+    <!-- Preconnect to Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Loading Orbitron and Oxanium to match overlay aesthetics in the control dashboard -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Oxanium:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body class="control-page">
+    <div class="scanlines" aria-hidden="true"></div>
     <main class="control-shell">
       <section class="control-header">
         <div>
-          <p class="eyebrow">Space Stream Overlay</p>
-          <h1>Mission Control</h1>
+          <p class="eyebrow">Space Stream Overlay // COCKPIT UNIT</p>
+          <h1>MISSION CONTROL</h1>
+          <div class="dashboard-diagnostic">
+            <span>CORE_LINK: STABLE</span>
+            <span>PORT_8787 // SECURE</span>
+          </div>
         </div>
         <div class="connection-badge" id="connectionBadge">Connecting</div>
       </section>
@@ -36,6 +46,10 @@
 
       <section class="control-grid">
         <form class="control-panel" id="detailsForm">
+          <div class="hud-corner top-left"></div>
+          <div class="hud-corner top-right"></div>
+          <div class="hud-corner bottom-left"></div>
+          <div class="hud-corner bottom-right"></div>
           <div class="panel-heading">
             <h2>Stream Details</h2>
             <button class="primary-button" type="submit">Save</button>
@@ -55,6 +69,10 @@
         </form>
 
         <section class="control-panel">
+          <div class="hud-corner top-left"></div>
+          <div class="hud-corner top-right"></div>
+          <div class="hud-corner bottom-left"></div>
+          <div class="hud-corner bottom-right"></div>
           <div class="panel-heading">
             <h2>Stats</h2>
             <button class="ghost-button" data-action="stats:reset" type="button">Reset</button>
@@ -82,6 +100,10 @@
         </section>
 
         <section class="control-panel">
+          <div class="hud-corner top-left"></div>
+          <div class="hud-corner top-right"></div>
+          <div class="hud-corner bottom-left"></div>
+          <div class="hud-corner bottom-right"></div>
           <div class="panel-heading">
             <h2>Timer</h2>
             <button class="ghost-button" data-action="timer:reset" type="button">Reset</button>
@@ -102,6 +124,10 @@
         </section>
 
         <form class="control-panel" id="goalForm">
+          <div class="hud-corner top-left"></div>
+          <div class="hud-corner top-right"></div>
+          <div class="hud-corner bottom-left"></div>
+          <div class="hud-corner bottom-right"></div>
           <div class="panel-heading">
             <h2>Subscriber Goal</h2>
             <button class="primary-button" type="submit">Save</button>

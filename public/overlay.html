@@ -4,46 +4,118 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Space Stream Overlay</title>
+    <!-- Preconnect to Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Loading Orbitron for futuristic HUD headers and Oxanium for digital values -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Oxanium:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body class="overlay-page">
     <canvas id="starfield" class="starfield" aria-hidden="true"></canvas>
+    
+    <!-- Scanning laser grid effect overlay -->
+    <div class="scanlines" aria-hidden="true"></div>
 
     <main class="overlay-stage" aria-live="polite">
       <div class="screen-accent screen-accent-top" aria-hidden="true"></div>
       <div class="screen-accent screen-accent-bottom" aria-hidden="true"></div>
 
-      <section class="top-hud hud-panel">
-        <div class="status-pill" id="statusText">LIVE</div>
+      <!-- Top Center Streamer HUD -->
+      <section class="top-hud hud-panel" id="topHudPanel">
+        <!-- Interactive corner markings -->
+        <div class="hud-corner top-left"></div>
+        <div class="hud-corner top-right"></div>
+        <div class="hud-corner bottom-left"></div>
+        <div class="hud-corner bottom-right"></div>
+        
+        <!-- High-tech rotating radar scanner widget -->
+        <div class="radar-container" aria-hidden="true">
+          <div class="radar-grid"></div>
+          <div class="radar-sweep"></div>
+          <div class="radar-blip"></div>
+        </div>
+
+        <div class="status-block">
+          <div class="status-pill" id="statusText">LIVE</div>
+          <div class="telemetry-tag">SYS: OK</div>
+        </div>
+
         <div class="identity-block">
           <div class="streamer-name" id="streamerName">STAR RUNNER</div>
           <div class="game-title" id="gameTitle">RANKED GRIND</div>
         </div>
+
+        <!-- Telemetry coordinates greeble -->
+        <div class="hud-serial" aria-hidden="true">
+          <span>NAV-09 // C-4</span>
+          <span>LAT: 47.92N</span>
+        </div>
       </section>
 
+      <!-- Stat panels on the left stack -->
       <section class="stat-stack stat-stack-left">
-        <article class="hud-panel stat-panel kill-panel">
+        <!-- Kills panel -->
+        <article class="hud-panel stat-panel kill-panel" id="killPanel">
+          <div class="hud-corner top-left"></div>
+          <div class="hud-corner top-right"></div>
+          <div class="hud-corner bottom-left"></div>
+          <div class="hud-corner bottom-right"></div>
+          
+          <div class="stat-meta" aria-hidden="true">COMBAT TELEMETRY</div>
           <span class="stat-label">KILLS</span>
           <strong class="stat-value" id="killsValue">0</strong>
+          <span class="stat-unit" aria-hidden="true">PK / ENG</span>
         </article>
-        <article class="hud-panel stat-panel win-panel">
+
+        <!-- Wins panel -->
+        <article class="hud-panel stat-panel win-panel" id="winPanel">
+          <div class="hud-corner top-left"></div>
+          <div class="hud-corner top-right"></div>
+          <div class="hud-corner bottom-left"></div>
+          <div class="hud-corner bottom-right"></div>
+          
+          <div class="stat-meta" aria-hidden="true">SECTOR CLEARANCE</div>
           <span class="stat-label">WINS</span>
           <strong class="stat-value" id="winsValue">0</strong>
+          <span class="stat-unit" aria-hidden="true">V-OP / Orbit</span>
         </article>
       </section>
 
-      <section class="hud-panel timer-panel">
-        <span class="timer-label" id="timerMode">COUNT UP</span>
-        <strong class="timer-value" id="timerValue">00:00</strong>
+      <!-- Center Bottom Timer HUD -->
+      <section class="hud-panel timer-panel" id="timerPanel">
+        <div class="hud-corner top-left"></div>
+        <div class="hud-corner top-right"></div>
+        <div class="hud-corner bottom-left"></div>
+        <div class="hud-corner bottom-right"></div>
+        
+        <div class="timer-greeble-left" aria-hidden="true">SYS_TIME</div>
+        <div class="timer-center-block">
+          <span class="timer-label" id="timerMode">COUNT UP</span>
+          <strong class="timer-value" id="timerValue">00:00</strong>
+        </div>
+        <div class="timer-greeble-right" aria-hidden="true">T-MINUS</div>
       </section>
 
-      <section class="hud-panel goal-panel">
+      <!-- Bottom Right Goal HUD -->
+      <section class="hud-panel goal-panel" id="goalPanel">
+        <div class="hud-corner top-left"></div>
+        <div class="hud-corner top-right"></div>
+        <div class="hud-corner bottom-left"></div>
+        <div class="hud-corner bottom-right"></div>
+        
         <div class="goal-topline">
-          <span id="subLabel">SUB GOAL</span>
-          <strong><span id="subsCurrent">42</span>/<span id="subsTarget">100</span></strong>
+          <span class="goal-header-text" id="subLabel">SUB GOAL</span>
+          <strong class="goal-numbers"><span id="subsCurrent">42</span>/<span id="subsTarget">100</span></strong>
         </div>
+        
         <div class="goal-track" aria-hidden="true">
           <div class="goal-fill" id="subProgress"></div>
+        </div>
+
+        <div class="goal-details" aria-hidden="true">
+          <span>PROGRESS CHANNELS</span>
+          <span>WARP FUEL: EST. 100%</span>
         </div>
       </section>
     </main>
