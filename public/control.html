@@ -158,6 +158,62 @@
             <input name="subsTarget" id="subsTargetInput" type="number" min="1" max="999999">
           </label>
         </form>
+
+        <form class="control-panel control-panel-wide" id="layoutForm">
+          <div class="hud-corner top-left"></div>
+          <div class="hud-corner top-right"></div>
+          <div class="hud-corner bottom-left"></div>
+          <div class="hud-corner bottom-right"></div>
+          <div class="panel-heading">
+            <h2>Layout Fine-Tune</h2>
+            <button class="primary-button" type="submit">Save Layout</button>
+          </div>
+          <div class="layout-editor">
+            <label>Top HUD X<input id="layoutTopHudX" type="number" min="-50" max="150"></label>
+            <label>Top HUD Y<input id="layoutTopHudY" type="number" min="-50" max="150"></label>
+            <label>Kills X<input id="layoutKillX" type="number" min="-50" max="150"></label>
+            <label>Kills Y<input id="layoutKillY" type="number" min="-50" max="150"></label>
+            <label>Wins X<input id="layoutWinX" type="number" min="-50" max="150"></label>
+            <label>Wins Y<input id="layoutWinY" type="number" min="-50" max="150"></label>
+            <label>Timer X<input id="layoutTimerX" type="number" min="-50" max="150"></label>
+            <label>Timer Y<input id="layoutTimerY" type="number" min="-50" max="150"></label>
+            <label>Goal X<input id="layoutGoalX" type="number" min="-50" max="150"></label>
+            <label>Goal Y<input id="layoutGoalY" type="number" min="-50" max="150"></label>
+          </div>
+        </form>
+
+        <form class="control-panel control-panel-wide" id="settingsForm">
+          <div class="hud-corner top-left"></div>
+          <div class="hud-corner top-right"></div>
+          <div class="hud-corner bottom-left"></div>
+          <div class="hud-corner bottom-right"></div>
+          <div class="panel-heading">
+            <h2>Effects & Audio</h2>
+            <button class="primary-button" type="submit">Save Settings</button>
+          </div>
+          <div class="settings-editor">
+            <label>Panel scale %<input id="panelScaleInput" type="number" min="60" max="140"></label>
+            <label>Panel opacity %<input id="panelOpacityInput" type="number" min="20" max="100"></label>
+            <label>Effects intensity %<input id="effectsIntensityInput" type="number" min="0" max="140"></label>
+            <label>Audio volume %<input id="audioVolumeInput" type="number" min="0" max="100"></label>
+          </div>
+          <label class="toggle-row">
+            <input id="audioEnabledInput" type="checkbox">
+            Enable kill/win/sub sounds
+          </label>
+          <label>
+            Kill sound URL
+            <input id="killSoundUrlInput" placeholder="/kill.mp3 or https://...">
+          </label>
+          <label>
+            Win sound URL
+            <input id="winSoundUrlInput" placeholder="/victory.mp3 or https://...">
+          </label>
+          <label>
+            Subscriber sound URL
+            <input id="subSoundUrlInput" placeholder="/sub.mp3 or https://...">
+          </label>
+        </form>
       </section>
     </main>
 

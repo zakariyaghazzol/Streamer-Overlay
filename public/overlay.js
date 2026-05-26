@@ -2,6 +2,7 @@ const overlayState = {
   data: null,
   connected: false
 };
+const stateCacheKey = "space-stream-overlay-state:v1";
 
 const overlayEls = {
   statusText: document.getElementById("statusText"),
@@ -30,6 +31,7 @@ if (new URLSearchParams(window.location.search).has("demo")) {
 
 connectEvents();
 loadInitialState();
+startStatePolling();
 startTimerLoop();
 startStarfield();
 
@@ -41,7 +43,7 @@ if (window.self !== window.top) {
 async function loadInitialState() {
   try {
     const response = await fetch("/api/state", { cache: "no-store" });
-    updateState(await response.json());
+    updateState(await reconcileState(await response.json()));
   } catch {
     setTimeout(loadInitialState, 1500);
   }
@@ -54,8 +56,8 @@ function connectEvents() {
     overlayState.connected = true;
   });
 
-  events.addEventListener("state", (event) => {
-    updateState(JSON.parse(event.data));
+  events.addEventListener("state", async (event) => {
+    updateState(await reconcileState(JSON.parse(event.data)));
   });
 
   events.addEventListener("error", () => {
@@ -63,9 +65,14 @@ function connectEvents() {
   });
 }
 
+function startStatePolling() {
+  setInterval(loadInitialState, 2500);
+}
+
 function updateState(nextState) {
   const previousState = overlayState.data;
   overlayState.data = nextState;
+  cacheState(nextState);
   
   overlayEls.statusText.textContent = nextState.statusText;
   overlayEls.streamerName.textContent = nextState.streamerName;
@@ -76,6 +83,7 @@ function updateState(nextState) {
   overlayEls.subsCurrent.textContent = nextState.subsCurrent;
   overlayEls.subsTarget.textContent = nextState.subsTarget;
   overlayEls.timerMode.textContent = nextState.timer.mode === "countdown" ? "COUNTDOWN" : "COUNT UP";
+  applyOverlaySettings(nextState.settings);
 
   const percent = Math.min(100, Math.round((nextState.subsCurrent / Math.max(1, nextState.subsTarget)) * 100));
   overlayEls.subProgress.style.width = `${percent}%`;
@@ -128,6 +136,56 @@ function updateState(nextState) {
   }
 
   renderTimer();
+}
+
+async function reconcileState(serverState) {
+  const cachedState = readCachedState();
+  const cachedUpdatedAt = Number(cachedState?.updatedAt || 0);
+  const serverUpdatedAt = Number(serverState?.updatedAt || 0);
+
+  if (cachedState && cachedUpdatedAt > serverUpdatedAt) {
+    try {
+      const response = await fetch("/api/state", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cachedState)
+      });
+      const restoredState = await response.json();
+      cacheState(restoredState);
+      return restoredState;
+    } catch {
+      return cachedState;
+    }
+  }
+
+  cacheState(serverState);
+  return serverState;
+}
+
+function cacheState(nextState) {
+  try {
+    localStorage.setItem(stateCacheKey, JSON.stringify(nextState));
+  } catch {}
+}
+
+function readCachedState() {
+  try {
+    const raw = localStorage.getItem(stateCacheKey);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function applyOverlaySettings(settings = {}) {
+  const root = document.documentElement;
+  const panelScale = clampNumber(settings.panelScale ?? 100, 60, 140) / 100;
+  const panelOpacity = clampNumber(settings.panelOpacity ?? 100, 20, 100) / 100;
+  const effectsIntensity = clampNumber(settings.effectsIntensity ?? 70, 0, 140) / 100;
+
+  root.style.setProperty("--overlay-panel-scale", panelScale.toFixed(2));
+  root.style.setProperty("--overlay-panel-opacity", panelOpacity.toFixed(2));
+  root.style.setProperty("--overlay-effects-intensity", effectsIntensity.toFixed(2));
 }
 
 function updatePositions(layout) {
@@ -706,8 +764,15 @@ const SpaceAudio = {
     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
   },
 
-  playLaserSub() {
+  resume() {
+    if (this.ctx && this.ctx.state === "suspended") {
+      this.ctx.resume().catch(() => {});
+    }
+  },
+
+  playLaserSub(volume = 0.35) {
     this.init();
+    this.resume();
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
 
@@ -718,7 +783,7 @@ const SpaceAudio = {
     osc.frequency.setValueAtTime(800, now);
     osc.frequency.exponentialRampToValueAtTime(180, now + 0.35);
 
-    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.setValueAtTime(0.34 * volume, now);
     gain.gain.exponentialRampToValueAtTime(0.005, now + 0.35);
 
     osc.connect(gain);
@@ -728,8 +793,9 @@ const SpaceAudio = {
     osc.stop(now + 0.35);
   },
 
-  playKillBeep() {
+  playKillBeep(volume = 0.35) {
     this.init();
+    this.resume();
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
 
@@ -740,7 +806,7 @@ const SpaceAudio = {
     osc.frequency.setValueAtTime(1000, now);
     osc.frequency.setValueAtTime(1350, now + 0.07);
 
-    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.setValueAtTime(0.3 * volume, now);
     gain.gain.exponentialRampToValueAtTime(0.005, now + 0.22);
 
     osc.connect(gain);
@@ -750,8 +816,9 @@ const SpaceAudio = {
     osc.stop(now + 0.22);
   },
 
-  playWinFanfare() {
+  playWinFanfare(volume = 0.35) {
     this.init();
+    this.resume();
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
 
@@ -772,7 +839,7 @@ const SpaceAudio = {
       osc.type = "triangle";
       osc.frequency.setValueAtTime(n.f, now + n.start);
 
-      gain.gain.setValueAtTime(0.15, now + n.start);
+      gain.gain.setValueAtTime(0.42 * volume, now + n.start);
       gain.gain.exponentialRampToValueAtTime(0.005, now + n.end);
 
       osc.connect(gain);
@@ -785,25 +852,45 @@ const SpaceAudio = {
 };
 
 function playSoundAlert(eventType) {
-  // Mapping custom local files placed in the public/ folder if they exist
+  const settings = overlayState.data?.settings || {};
+  if (settings.audioEnabled === false) {
+    return;
+  }
+
+  const volume = clampNumber(settings.audioVolume ?? 35, 0, 100) / 100;
   const customFiles = {
-    kill: "/kill.mp3",
-    win: "/victory.mp3",
-    sub: "/sub.mp3"
+    kill: settings.killSoundUrl,
+    win: settings.winSoundUrl,
+    sub: settings.subSoundUrl
   };
+  const customFile = customFiles[eventType];
 
-  const audio = new Audio(customFiles[eventType]);
-  audio.volume = 0.35;
+  if (customFile) {
+    const audio = new Audio(customFile);
+    audio.volume = volume;
 
-  audio.play()
-    .catch(() => {
-      // Fallback: If custom local audio file doesn't exist, synthesize it in Web Audio API!
-      if (eventType === "kill") {
-        SpaceAudio.playKillBeep();
-      } else if (eventType === "win") {
-        SpaceAudio.playWinFanfare();
-      } else if (eventType === "sub") {
-        SpaceAudio.playLaserSub();
-      }
-    });
+    audio.play()
+      .catch(() => playSynthSound(eventType, volume));
+    return;
+  }
+
+  playSynthSound(eventType, volume);
+}
+
+function playSynthSound(eventType, volume) {
+  if (eventType === "kill") {
+    SpaceAudio.playKillBeep(volume);
+  } else if (eventType === "win") {
+    SpaceAudio.playWinFanfare(volume);
+  } else if (eventType === "sub") {
+    SpaceAudio.playLaserSub(volume);
+  }
+}
+
+function clampNumber(value, min, max) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return min;
+  }
+  return Math.min(max, Math.max(min, number));
 }

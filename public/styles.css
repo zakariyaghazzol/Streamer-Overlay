@@ -34,6 +34,9 @@
   --glow-gold: 0 0 15px rgba(255, 210, 0, 0.25);
   
   --radius-panel: 6px;
+  --overlay-panel-scale: 1;
+  --overlay-panel-opacity: 1;
+  --overlay-effects-intensity: 0.7;
   font-family: var(--font-hud);
   letter-spacing: 0.08em;
 }
@@ -103,6 +106,18 @@ button {
   opacity: 0.9;
 }
 
+.overlay-page .starfield {
+  opacity: calc(0.3 * var(--overlay-effects-intensity));
+}
+
+.overlay-page.demo-mode .starfield {
+  opacity: calc(0.9 * var(--overlay-effects-intensity));
+}
+
+.overlay-page .scanlines {
+  opacity: calc(0.3 * var(--overlay-effects-intensity));
+}
+
 .overlay-stage {
   position: relative;
   width: 100vw;
@@ -153,6 +168,8 @@ button {
   box-shadow: var(--glow-emerald), 0 10px 35px rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(14px) saturate(1.3);
   transform-style: preserve-3d;
+  opacity: var(--overlay-panel-opacity);
+  scale: var(--overlay-panel-scale);
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -1048,6 +1065,10 @@ h2 {
   position: relative;
 }
 
+.control-panel-wide {
+  grid-column: span 2;
+}
+
 .control-panel::before {
   content: "[ANOMALY_LOG]";
   position: absolute;
@@ -1097,6 +1118,26 @@ input {
 input:focus {
   border-color: var(--nms-cyan);
   box-shadow: 0 0 12px rgba(0, 240, 255, 0.3), inset 0 0 8px rgba(0, 240, 255, 0.1);
+}
+
+input[type="checkbox"] {
+  width: 18px;
+  min-height: 18px;
+  accent-color: var(--nms-emerald);
+  box-shadow: none;
+}
+
+.layout-editor,
+.settings-editor {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 button {
@@ -1271,6 +1312,7 @@ button:active {
 
 @media (max-width: 1040px) {
   .control-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .control-panel-wide { grid-column: span 2; }
 }
 
 @media (max-width: 980px) {
@@ -1293,6 +1335,9 @@ button:active {
 @media (max-width: 620px) {
   .control-shell { width: min(100vw - 24px, 520px); padding-top: 20px; }
   .control-grid { grid-template-columns: 1fr; }
+  .control-panel-wide { grid-column: span 1; }
+  .layout-editor,
+  .settings-editor { grid-template-columns: 1fr; }
   .control-header { align-items: flex-start; flex-direction: column; gap: 12px; }
   h1 { font-size: 2.1rem; }
   .preview-topbar { font-size: 0.65rem; }

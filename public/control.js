@@ -2,6 +2,7 @@ const controlState = {
   data: null,
   connected: false
 };
+const stateCacheKey = "space-stream-overlay-state:v1";
 
 const controlEls = {
   connectionBadge: document.getElementById("connectionBadge"),
@@ -10,6 +11,8 @@ const controlEls = {
   openOverlayButton: document.getElementById("openOverlayButton"),
   detailsForm: document.getElementById("detailsForm"),
   goalForm: document.getElementById("goalForm"),
+  layoutForm: document.getElementById("layoutForm"),
+  settingsForm: document.getElementById("settingsForm"),
   streamerNameInput: document.getElementById("streamerNameInput"),
   gameTitleInput: document.getElementById("gameTitleInput"),
   statusTextInput: document.getElementById("statusTextInput"),
@@ -22,7 +25,25 @@ const controlEls = {
   subsReadout: document.getElementById("subsReadout"),
   subLabelInput: document.getElementById("subLabelInput"),
   subsCurrentInput: document.getElementById("subsCurrentInput"),
-  subsTargetInput: document.getElementById("subsTargetInput")
+  subsTargetInput: document.getElementById("subsTargetInput"),
+  layoutTopHudX: document.getElementById("layoutTopHudX"),
+  layoutTopHudY: document.getElementById("layoutTopHudY"),
+  layoutKillX: document.getElementById("layoutKillX"),
+  layoutKillY: document.getElementById("layoutKillY"),
+  layoutWinX: document.getElementById("layoutWinX"),
+  layoutWinY: document.getElementById("layoutWinY"),
+  layoutTimerX: document.getElementById("layoutTimerX"),
+  layoutTimerY: document.getElementById("layoutTimerY"),
+  layoutGoalX: document.getElementById("layoutGoalX"),
+  layoutGoalY: document.getElementById("layoutGoalY"),
+  panelScaleInput: document.getElementById("panelScaleInput"),
+  panelOpacityInput: document.getElementById("panelOpacityInput"),
+  effectsIntensityInput: document.getElementById("effectsIntensityInput"),
+  audioVolumeInput: document.getElementById("audioVolumeInput"),
+  audioEnabledInput: document.getElementById("audioEnabledInput"),
+  killSoundUrlInput: document.getElementById("killSoundUrlInput"),
+  winSoundUrlInput: document.getElementById("winSoundUrlInput"),
+  subSoundUrlInput: document.getElementById("subSoundUrlInput")
 };
 
 controlEls.overlayUrl.value = `${window.location.origin}/overlay`;
@@ -96,14 +117,50 @@ controlEls.goalForm.addEventListener("submit", (event) => {
   });
 });
 
+controlEls.layoutForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  sendAction({
+    type: "state:update",
+    patch: {
+      layout: {
+        topHud: { x: readInt(controlEls.layoutTopHudX), y: readInt(controlEls.layoutTopHudY) },
+        kill: { x: readInt(controlEls.layoutKillX), y: readInt(controlEls.layoutKillY) },
+        win: { x: readInt(controlEls.layoutWinX), y: readInt(controlEls.layoutWinY) },
+        timer: { x: readInt(controlEls.layoutTimerX), y: readInt(controlEls.layoutTimerY) },
+        goal: { x: readInt(controlEls.layoutGoalX), y: readInt(controlEls.layoutGoalY) }
+      }
+    }
+  });
+});
+
+controlEls.settingsForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  sendAction({
+    type: "state:update",
+    patch: {
+      settings: {
+        panelScale: readInt(controlEls.panelScaleInput),
+        panelOpacity: readInt(controlEls.panelOpacityInput),
+        effectsIntensity: readInt(controlEls.effectsIntensityInput),
+        audioEnabled: controlEls.audioEnabledInput.checked,
+        audioVolume: readInt(controlEls.audioVolumeInput),
+        killSoundUrl: controlEls.killSoundUrlInput.value,
+        winSoundUrl: controlEls.winSoundUrlInput.value,
+        subSoundUrl: controlEls.subSoundUrlInput.value
+      }
+    }
+  });
+});
+
 connectEvents();
 loadInitialState();
+startStatePolling();
 startTimerLoop();
 
 async function loadInitialState() {
   try {
     const response = await fetch("/api/state", { cache: "no-store" });
-    updateState(await response.json());
+    updateState(await reconcileState(await response.json()));
   } catch {
     setConnection(false);
     setTimeout(loadInitialState, 1500);
@@ -117,14 +174,18 @@ function connectEvents() {
     setConnection(true);
   });
 
-  events.addEventListener("state", (event) => {
+  events.addEventListener("state", async (event) => {
     setConnection(true);
-    updateState(JSON.parse(event.data));
+    updateState(await reconcileState(JSON.parse(event.data)));
   });
 
   events.addEventListener("error", () => {
     setConnection(false);
   });
+}
+
+function startStatePolling() {
+  setInterval(loadInitialState, 2500);
 }
 
 async function sendAction(payload) {
@@ -146,6 +207,7 @@ async function sendAction(payload) {
 function updateState(nextState) {
   const previous = controlState.data;
   controlState.data = nextState;
+  cacheState(nextState);
 
   controlEls.killsReadout.textContent = nextState.kills;
   controlEls.winsReadout.textContent = nextState.wins;
@@ -172,8 +234,97 @@ function updateState(nextState) {
   if (!previous || previous.subsTarget !== nextState.subsTarget) {
     controlEls.subsTargetInput.value = nextState.subsTarget;
   }
+  updateLayoutInputs(previous, nextState);
+  updateSettingsInputs(previous, nextState);
 
   renderTimer();
+}
+
+async function reconcileState(serverState) {
+  const cachedState = readCachedState();
+  const cachedUpdatedAt = Number(cachedState?.updatedAt || 0);
+  const serverUpdatedAt = Number(serverState?.updatedAt || 0);
+
+  if (cachedState && cachedUpdatedAt > serverUpdatedAt) {
+    try {
+      const response = await fetch("/api/state", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cachedState)
+      });
+      const restoredState = await response.json();
+      cacheState(restoredState);
+      return restoredState;
+    } catch {
+      return cachedState;
+    }
+  }
+
+  cacheState(serverState);
+  return serverState;
+}
+
+function cacheState(nextState) {
+  try {
+    localStorage.setItem(stateCacheKey, JSON.stringify(nextState));
+  } catch {}
+}
+
+function readCachedState() {
+  try {
+    const raw = localStorage.getItem(stateCacheKey);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function updateLayoutInputs(previous, nextState) {
+  const layout = nextState.layout || {};
+  const previousLayout = previous?.layout || {};
+  const pairs = [
+    ["topHud", controlEls.layoutTopHudX, controlEls.layoutTopHudY],
+    ["kill", controlEls.layoutKillX, controlEls.layoutKillY],
+    ["win", controlEls.layoutWinX, controlEls.layoutWinY],
+    ["timer", controlEls.layoutTimerX, controlEls.layoutTimerY],
+    ["goal", controlEls.layoutGoalX, controlEls.layoutGoalY]
+  ];
+
+  for (const [key, xInput, yInput] of pairs) {
+    if (!layout[key]) {
+      continue;
+    }
+    if (!previous || previousLayout[key]?.x !== layout[key].x) {
+      xInput.value = layout[key].x;
+    }
+    if (!previous || previousLayout[key]?.y !== layout[key].y) {
+      yInput.value = layout[key].y;
+    }
+  }
+}
+
+function updateSettingsInputs(previous, nextState) {
+  const settings = nextState.settings || {};
+  const previousSettings = previous?.settings || {};
+  const pairs = [
+    ["panelScale", controlEls.panelScaleInput],
+    ["panelOpacity", controlEls.panelOpacityInput],
+    ["effectsIntensity", controlEls.effectsIntensityInput],
+    ["audioVolume", controlEls.audioVolumeInput],
+    ["killSoundUrl", controlEls.killSoundUrlInput],
+    ["winSoundUrl", controlEls.winSoundUrlInput],
+    ["subSoundUrl", controlEls.subSoundUrlInput]
+  ];
+
+  for (const [key, input] of pairs) {
+    if (!previous || previousSettings[key] !== settings[key]) {
+      input.value = settings[key] ?? "";
+    }
+  }
+
+  if (!previous || previousSettings.audioEnabled !== settings.audioEnabled) {
+    controlEls.audioEnabledInput.checked = settings.audioEnabled !== false;
+  }
 }
 
 function setConnection(isOnline) {
@@ -225,4 +376,9 @@ function formatTime(ms) {
 
 function pad(value) {
   return String(value).padStart(2, "0");
+}
+
+function readInt(input) {
+  const number = Number.parseInt(input.value, 10);
+  return Number.isFinite(number) ? number : 0;
 }

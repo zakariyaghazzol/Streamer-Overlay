@@ -8,6 +8,7 @@ const publicDir = path.join(rootDir, "public");
 const statePath = path.join(rootDir, "state.json");
 const port = Number(process.env.PORT || process.argv[2] || 8787);
 const host = process.env.HOST || "127.0.0.1";
+const remoteStateKey = process.env.OVERLAY_STATE_KEY || "space-stream-overlay:state:v1";
 
 const defaultState = {
   streamerName: "STAR RUNNER",
@@ -18,12 +19,23 @@ const defaultState = {
   subsCurrent: 42,
   subsTarget: 100,
   subLabel: "SUB GOAL",
+  updatedAt: 0,
   timer: {
     mode: "countup",
     running: false,
     startedAt: null,
     elapsedMs: 0,
     durationMs: 15 * 60 * 1000
+  },
+  settings: {
+    panelScale: 100,
+    panelOpacity: 100,
+    effectsIntensity: 70,
+    audioEnabled: true,
+    audioVolume: 35,
+    killSoundUrl: "",
+    winSoundUrl: "",
+    subSoundUrl: ""
   },
   layout: {
     topHud: { x: 50, y: 3 },
@@ -36,8 +48,8 @@ const defaultState = {
 
 let state = clone(defaultState);
 const eventClients = new Set();
-let saveTimer = null;
 let stateReady = false;
+let remoteStorageWarned = false;
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -111,19 +123,23 @@ async function routeRequest(req, res) {
   }
 
   if (req.method === "GET" && url.pathname === "/api/state") {
+    await refreshStateFromRemote();
     sendJson(res, 200, publicState());
     return;
   }
 
   if (req.method === "POST" && url.pathname === "/api/state") {
+    await refreshStateFromRemote();
     const body = await readJson(req);
     state = sanitizeState({ ...state, ...body });
+    state.updatedAt = Date.now();
     await persistAndBroadcast();
     sendJson(res, 200, publicState());
     return;
   }
 
   if (req.method === "POST" && url.pathname === "/api/action") {
+    await refreshStateFromRemote();
     const body = await readJson(req);
     applyAction(body);
     await persistAndBroadcast();
@@ -145,6 +161,11 @@ async function routeRequest(req, res) {
 }
 
 async function loadState() {
+  const remoteState = await loadRemoteState();
+  if (remoteState) {
+    return remoteState;
+  }
+
   try {
     const raw = await fsp.readFile(statePath, "utf8");
     return sanitizeState({ ...defaultState, ...JSON.parse(raw) });
@@ -156,6 +177,7 @@ async function loadState() {
 function sanitizeState(input) {
   const timerInput = input.timer && typeof input.timer === "object" ? input.timer : {};
   const layoutInput = input.layout && typeof input.layout === "object" ? input.layout : {};
+  const settingsInput = input.settings && typeof input.settings === "object" ? input.settings : {};
   const defaultLayout = defaultState.layout || {
     topHud: { x: 50, y: 3 },
     kill: { x: 5, y: 15 },
@@ -181,12 +203,23 @@ function sanitizeState(input) {
     subsCurrent: clampInt(input.subsCurrent, 0, 999999),
     subsTarget: Math.max(1, clampInt(input.subsTarget, 1, 999999)),
     subLabel: cleanText(input.subLabel, defaultState.subLabel, 28),
+    updatedAt: Number.isFinite(Number(input.updatedAt)) ? Number(input.updatedAt) : 0,
     timer: {
       mode: timerInput.mode === "countdown" ? "countdown" : "countup",
       running: Boolean(timerInput.running),
       startedAt: Number.isFinite(Number(timerInput.startedAt)) ? Number(timerInput.startedAt) : null,
       elapsedMs: clampInt(timerInput.elapsedMs, 0, 24 * 60 * 60 * 1000),
       durationMs: Math.max(1000, clampInt(timerInput.durationMs, 1000, 24 * 60 * 60 * 1000))
+    },
+    settings: {
+      panelScale: clampInt(settingsInput.panelScale ?? defaultState.settings.panelScale, 60, 140),
+      panelOpacity: clampInt(settingsInput.panelOpacity ?? defaultState.settings.panelOpacity, 20, 100),
+      effectsIntensity: clampInt(settingsInput.effectsIntensity ?? defaultState.settings.effectsIntensity, 0, 140),
+      audioEnabled: settingsInput.audioEnabled !== false,
+      audioVolume: clampInt(settingsInput.audioVolume ?? defaultState.settings.audioVolume, 0, 100),
+      killSoundUrl: cleanOptionalText(settingsInput.killSoundUrl, 500),
+      winSoundUrl: cleanOptionalText(settingsInput.winSoundUrl, 500),
+      subSoundUrl: cleanOptionalText(settingsInput.subSoundUrl, 500)
     },
     layout: {
       topHud: sanitizePanel("topHud", defaultLayout.topHud),
@@ -215,6 +248,14 @@ function cleanText(value, fallback, maxLength) {
 
   const cleaned = value.replace(/\s+/g, " ").trim();
   return cleaned ? cleaned.slice(0, maxLength) : fallback;
+}
+
+function cleanOptionalText(value, maxLength) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.replace(/\s+/g, " ").trim().slice(0, maxLength);
 }
 
 function applyAction(action = {}) {
@@ -295,6 +336,7 @@ function applyAction(action = {}) {
       break;
   }
 
+  next.updatedAt = Date.now();
   state = sanitizeState(next);
 }
 
@@ -315,23 +357,110 @@ function currentElapsed(timer, at = Date.now()) {
 }
 
 async function persistAndBroadcast() {
-  scheduleSave();
+  await persistState();
   broadcast("state", publicState());
 }
 
-function scheduleSave() {
-  if (process.env.VERCEL) {
+async function persistState() {
+  const savedRemotely = await saveRemoteState();
+
+  if (savedRemotely) {
     return;
   }
 
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(async () => {
-    try {
-      await fsp.writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8");
-    } catch (error) {
-      console.error("Could not save state:", error.message);
+  if (process.env.VERCEL) {
+    warnMissingRemoteStorage();
+    return;
+  }
+
+  try {
+    await fsp.writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8");
+  } catch (error) {
+    console.error("Could not save state:", error.message);
+  }
+}
+
+async function loadRemoteState() {
+  if (!hasRemoteStorage()) {
+    warnMissingRemoteStorage();
+    return null;
+  }
+
+  try {
+    const raw = await redisCommand(["GET", remoteStateKey]);
+    if (!raw) {
+      return null;
     }
-  }, 100);
+
+    return sanitizeState({ ...defaultState, ...JSON.parse(raw) });
+  } catch (error) {
+    console.error("Could not load remote overlay state:", error.message);
+    return null;
+  }
+}
+
+async function refreshStateFromRemote() {
+  if (!hasRemoteStorage()) {
+    return;
+  }
+
+  const remoteState = await loadRemoteState();
+  if (remoteState) {
+    state = remoteState;
+  }
+}
+
+async function saveRemoteState() {
+  if (!hasRemoteStorage()) {
+    return false;
+  }
+
+  try {
+    await redisCommand(["SET", remoteStateKey, JSON.stringify(state)]);
+    return true;
+  } catch (error) {
+    console.error("Could not save remote overlay state:", error.message);
+    return false;
+  }
+}
+
+async function redisCommand(command) {
+  const config = getRemoteStorageConfig();
+  const response = await fetch(config.url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${config.token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(command)
+  });
+  const payload = await response.json();
+
+  if (!response.ok || payload.error) {
+    throw new Error(payload.error || `Redis REST request failed with ${response.status}`);
+  }
+
+  return payload.result;
+}
+
+function getRemoteStorageConfig() {
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || "";
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || "";
+  return { url, token };
+}
+
+function hasRemoteStorage() {
+  const config = getRemoteStorageConfig();
+  return Boolean(config.url && config.token);
+}
+
+function warnMissingRemoteStorage() {
+  if (!process.env.VERCEL || remoteStorageWarned || hasRemoteStorage()) {
+    return;
+  }
+
+  remoteStorageWarned = true;
+  console.warn("Hosted overlay state is temporary because no Redis/KV REST environment variables are configured.");
 }
 
 function publicState() {

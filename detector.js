@@ -50,7 +50,15 @@ let io = null;
 function loadOptionalDependencies() {
   try { screenshot = require("screenshot-desktop"); } catch (e) {}
   try { tesseract = require("tesseract.js"); } catch (e) {}
-  try { jimp = require("jimp"); } catch (e) {}
+  try {
+    const jimpModule = require("jimp");
+    jimp = {
+      module: jimpModule,
+      read: jimpModule.read || jimpModule.Jimp?.read,
+      mimePng: jimpModule.MIME_PNG || jimpModule.JimpMime?.png || "image/png",
+      auto: jimpModule.AUTO
+    };
+  } catch (e) {}
   try { io = require("socket.io-client"); } catch (e) {}
 }
 
@@ -227,12 +235,12 @@ async function runOCRScanner(killsRoi, winsRoi) {
       const imgBuffer = await screenshot({ format: "png" });
       
       // 2. Scan Kills
-      const killsJimp = await jimp.read(imgBuffer);
-      killsJimp.crop(killsRoi.x, killsRoi.y, killsRoi.width, killsRoi.height);
+      const killsJimp = await readJimpImage(imgBuffer);
+      cropJimpImage(killsJimp, killsRoi);
       
       // Optimize image for Tesseract (grayscale, scale up, higher contrast, invert)
-      killsJimp.grayscale().contrast(0.8).resize(killsRoi.width * 2, jimp.AUTO).invert();
-      const processedKillsBuffer = await killsJimp.getBufferAsync(jimp.MIME_PNG);
+      prepareJimpForOCR(killsJimp, 0.8, killsRoi.width * 2, true);
+      const processedKillsBuffer = await getJimpPngBuffer(killsJimp);
       
       const killsTextResult = await tesseract.recognize(processedKillsBuffer, "eng", {
         tessedit_char_whitelist: "0123456789"
@@ -260,11 +268,11 @@ async function runOCRScanner(killsRoi, winsRoi) {
 
       // 3. Scan Wins (Fortnite Victory Royale check)
       if (winsRoi && !isWinCooldown) {
-        const winsJimp = await jimp.read(imgBuffer);
-        winsJimp.crop(winsRoi.x, winsRoi.y, winsRoi.width, winsRoi.height);
-        winsJimp.grayscale().contrast(0.7).invert();
+        const winsJimp = await readJimpImage(imgBuffer);
+        cropJimpImage(winsJimp, winsRoi);
+        prepareJimpForOCR(winsJimp, 0.7, null, true);
         
-        const processedWinsBuffer = await winsJimp.getBufferAsync(jimp.MIME_PNG);
+        const processedWinsBuffer = await getJimpPngBuffer(winsJimp);
         const winsTextResult = await tesseract.recognize(processedWinsBuffer, "eng");
         
         const winText = winsTextResult.data.text.toUpperCase();
@@ -298,7 +306,7 @@ async function runOCRScanner(killsRoi, winsRoi) {
 }
 
 function checkOCRDeps() {
-  if (!tesseract || !screenshot || !jimp) {
+  if (!tesseract || !screenshot || !jimp?.read) {
     console.clear();
     printBanner();
     console.log(`${colors.red}${colors.bright}CRITICAL: OCR Dependencies Missing!${colors.reset}\n`);
@@ -315,6 +323,50 @@ function checkOCRDeps() {
     return false;
   }
   return true;
+}
+
+async function readJimpImage(buffer) {
+  return jimp.read(buffer);
+}
+
+function cropJimpImage(image, roi) {
+  try {
+    image.crop(roi.x, roi.y, roi.width, roi.height);
+  } catch {
+    image.crop({ x: roi.x, y: roi.y, w: roi.width, h: roi.height });
+  }
+}
+
+function prepareJimpForOCR(image, contrastValue, resizeWidth, shouldInvert) {
+  if (typeof image.grayscale === "function") {
+    image.grayscale();
+  } else if (typeof image.greyscale === "function") {
+    image.greyscale();
+  }
+
+  if (typeof image.contrast === "function") {
+    image.contrast(contrastValue);
+  }
+
+  if (resizeWidth) {
+    try {
+      image.resize(resizeWidth, jimp.auto);
+    } catch {
+      image.resize({ w: resizeWidth });
+    }
+  }
+
+  if (shouldInvert && typeof image.invert === "function") {
+    image.invert();
+  }
+}
+
+async function getJimpPngBuffer(image) {
+  if (typeof image.getBufferAsync === "function") {
+    return image.getBufferAsync(jimp.mimePng);
+  }
+
+  return image.getBuffer(jimp.mimePng);
 }
 
 // ==============================================================================
@@ -586,14 +638,18 @@ async function captureAndDumpCrop(roi) {
   console.log(`\n📸 Capturing screenshot...`);
   try {
     const imgBuffer = await screenshot({ format: "png" });
-    const jimpImg = await jimp.read(imgBuffer);
+    const jimpImg = await readJimpImage(imgBuffer);
     
-    jimpImg.crop(roi.x, roi.y, roi.width, roi.height);
+    cropJimpImage(jimpImg, roi);
     
     // Save image locally
     const outputName = "debug-crop.png";
     const outputPath = path.join(__dirname, outputName);
-    await jimpImg.writeAsync(outputPath);
+    if (typeof jimpImg.writeAsync === "function") {
+      await jimpImg.writeAsync(outputPath);
+    } else {
+      await jimpImg.write(outputPath);
+    }
 
     console.log(`${colors.green}[SUCCESS]${colors.reset} Crop successfully saved to file:`);
     console.log(`  👉 [debug-crop.png](file:///${outputPath.replace(/\\/g, "/")})`);
@@ -665,11 +721,13 @@ function startManualSimulator() {
 function triggerOverlayAction(payload) {
   const data = JSON.stringify(payload);
   const urlObj = new URL(OVERLAY_API_URL);
+  const isHttps = urlObj.protocol === "https:";
+  const client = isHttps ? https : http;
 
   const options = {
     hostname: urlObj.hostname,
-    port: urlObj.port,
-    path: urlObj.pathname,
+    port: urlObj.port || (isHttps ? 443 : 80),
+    path: `${urlObj.pathname}${urlObj.search}`,
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -677,7 +735,7 @@ function triggerOverlayAction(payload) {
     }
   };
 
-  const req = http.request(options, (res) => {
+  const req = client.request(options, (res) => {
     // Consume response
     res.on("data", () => {});
   });

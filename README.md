@@ -44,6 +44,8 @@ Use the control panel at `http://127.0.0.1:8787/control` for normal live changes
 - Click `+` or `-` for kills, wins, and subscribers.
 - Press `Start`, `Pause`, or `Reset` for the timer.
 - Edit streamer name, game title, status, goal label, current subs, and target subs, then press `Save`.
+- Drag overlay panels inside the preview, or use `Layout Fine-Tune` to set exact X/Y percentages.
+- Use `Effects & Audio` to change panel scale, panel opacity, visual intensity, sound volume, and custom sound URLs.
 
 For design changes, edit these files:
 
@@ -52,6 +54,42 @@ For design changes, edit these files:
 - `public/control.html` controls the private dashboard.
 
 After editing code, reload the Streamlabs Browser Source or click its refresh button.
+
+## Hosted Persistence
+
+The local overlay saves to `state.json`, so local Streamlabs changes survive restarts.
+
+Vercel serverless functions do not keep in-memory state forever. For the hosted control panel to stay changed permanently, connect Upstash Redis to the Vercel project:
+
+1. Open the Vercel project `space-stream-overlay`.
+2. Add the Upstash Redis integration from Vercel Marketplace.
+3. Make sure Vercel has `KV_REST_API_URL` and `KV_REST_API_TOKEN`.
+4. Redeploy the project.
+
+The server automatically uses Redis when those variables exist, and falls back to local `state.json` on your PC.
+
+## Auto Detection
+
+Run the local detector beside the overlay:
+
+```powershell
+cd C:\Users\zghaz\Desktop\projects\space-stream-overlay
+npm run detect
+```
+
+Use `OVERLAY_API_URL` in `.env` to choose where detector events go:
+
+```text
+OVERLAY_API_URL=http://127.0.0.1:8787/api/action
+```
+
+or:
+
+```text
+OVERLAY_API_URL=https://space-stream-overlay.vercel.app/api/action
+```
+
+Fortnite detection is OCR-based because Fortnite does not expose a simple official live kill/win telemetry API for third-party overlays. The detector can also listen to Streamlabs socket events when `STREAMLABS_SOCKET_TOKEN` is set.
 
 ## Notes
 
